@@ -12,6 +12,8 @@ int linenum = 1;
 char buf[MAX_LINE_LENG];
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <memory.h>
 %}
 
 %x C_COMMENT
