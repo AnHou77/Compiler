@@ -7,13 +7,39 @@
 #define tokenDouble(t,d) {LIST; printf("<%s: %lf>\n",t,d);}
 
 #define MAX_LINE_LENG 256
+#define TABLE_SIZE 37
 
 int linenum = 1;
+
 char buf[MAX_LINE_LENG];
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <memory.h>
+
+/* Symbol Node */
+typedef struct{
+	char *name;
+	void *pre;
+	void *next;
+} Node;
+
+/* Symbol table */
+typedef struct{
+	Node **table;
+} SymbolTable;
+
+
+unsigned int hash(char* s);
+
+SymbolTable* create();
+int lookup(SymbolTable* st, char* s);
+int insert(SymbolTable* st, char* s);
+void dump(SymbolTable* st);
+
+/* Global symboltable */
+SymbolTable *ST;
+
 %}
 
 %x C_COMMENT
@@ -53,6 +79,7 @@ cpp_comment "//"[^\n]*
 
 %%
 
+	/* Keyword */
 boolean {
 	token("BOOLEAN");
 }
@@ -189,10 +216,13 @@ while {
 	tokenDouble("Real Constants",buff);
 }
 
+	/* Put Identifier into SymbolTable */
 {id} {
+	insert(ST, yytext);
 	tokenString("id",yytext);
 }
 
+	/* String deal with double quote */
 {string} {
 	int flag = 0;
 
@@ -228,7 +258,6 @@ while {
 		free(buff);
 	}
 }
-
 
 {c_comments} {
 	LIST;
@@ -271,6 +300,112 @@ while {
 
 %%
 
-int main(){
+/* Hash function with division method */
+unsigned int hash(char* s){
+	unsigned int idx = 0;
+	while(1){
+		if(*(s) == 0){
+			break;
+		}
+		idx = idx + *(s++);
+	}
+	return idx % TABLE_SIZE;
+}
+
+/* Create a new symbol table */
+SymbolTable* create() {
+	SymbolTable *st = NULL;
+	st = malloc(sizeof(SymbolTable));
+	st->table = malloc(sizeof(Node) * TABLE_SIZE);
+
+	/* initial */
+	for(int i = 0; i < TABLE_SIZE; i++){
+		st->table[i] = NULL;
+	}
+
+	return st;
+}
+
+/* Check if s was already in symbol table */
+int lookup(SymbolTable* st, char* s){
+	unsigned int idx = hash(s);
+	Node *iter = st->table[idx];
+
+	for(; iter != NULL; iter = iter->next){
+		if(strcmp(s, iter->name) == 0){
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+/* Insert s into symbol table */
+int insert(SymbolTable* st, char* s){
+	unsigned int idx = hash(s);
+	Node *currentNode = st->table[idx];
+	Node *newNode = malloc(sizeof(Node));
+
+	/* There is still space in this row, set as first node */
+	if(currentNode == NULL){
+		newNode->name = malloc(sizeof(char)*strlen(s));
+		strcpy(newNode->name, s);
+		newNode->next = NULL;
+		newNode->pre = NULL;
+		st->table[idx] = newNode;
+		return 1;
+	}
+	/* If it doesn't exist in the table, link to the end */
+	else{
+		Node *preNode = NULL;
+		for(; currentNode != NULL; currentNode = currentNode->next){
+			if(strcmp(s, currentNode->name) == 0){
+				return 1;
+			}
+			else{
+				preNode = currentNode;
+			}
+		}
+		
+		newNode->name = malloc(sizeof(char)*strlen(s));
+		strcpy(newNode->name, s);
+		newNode->next = NULL;
+		newNode->pre = preNode;
+		preNode->next = newNode;
+
+		return 1;
+	}
+}
+
+/* Output Symbol Table */
+void dump(SymbolTable* st){
+	printf("=====SymbolTable=====\n");
+	for(int i = 0; i < TABLE_SIZE; i++){
+		Node *iter = st->table[i];
+		for(; iter != NULL; iter = iter->next){
+			printf("%s\n", iter->name);
+		}
+	}
+}
+
+int main(int argc, char **argv){
+
+	ST = create();
+	
+	if(argc > 1){
+		yyin = fopen(argv[1],"r");
+		if(!yyin){
+			printf("open failed\n");
+			exit(0);
+		}
+	}
+	else{
+		yyin = stdin;
+	}
+	
 	yylex();
+	
+	dump(ST);
+
+	return 0;
 }
