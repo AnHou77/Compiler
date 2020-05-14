@@ -62,9 +62,9 @@ letter	[a-zA-Z]
 
 /* Integer Constants & Real Constants */
 integer	{digits}+
-plainreal	[+-]?{digits}"."{digits}
-expreal	[+-]?{digits}"."{digits}[Ee][+-]?{digits}
-realnum {plainreal}|{expreal}
+plainreal	{integer}"."{integer}
+expreal	{integer}"."{integer}[Ee][+-]?{integer}
+realnum [+-]?({plainreal}|{expreal})
 
 /* Identifiers */
 id	{letter}({digits}|{letter})*
