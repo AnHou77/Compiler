@@ -48,7 +48,7 @@ SymbolTable *ST;
 delim	[,:\.;()\[\]\{\}]
 
 /* Operators */
-arithop	[\+\-\*/]
+arithop	[\+\-\*/=]
 rmdrop	%
 relatop	<|<=|>=|>|==|!=
 logop	"&&"|"||"|"!"
