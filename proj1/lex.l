@@ -55,7 +55,7 @@ logop	"&&"|"||"|"!"
 op {arithop}|{rmdrop}|{relatop}|{logop}
 
 /* Boolean Constants */
-boolean [true|false]
+boolean true|false
 
 digits	[0-9]
 letter	[a-zA-Z]
