@@ -16,30 +16,32 @@ char buf[MAX_LINE_LENG];
 #include <stdio.h>
 #include <stdlib.h>
 #include <memory.h>
-#include "y.tab.h"
+#include <iostream>
+#include <string>
+#include "y.tab.hpp"
 
-/* Symbol Node */
-typedef struct{
-	char *name;
-	void *pre;
-	void *next;
-} Node;
+// /* Symbol Node */
+// typedef struct{
+// 	char *name;
+// 	void *pre;
+// 	void *next;
+// } Node;
 
-/* Symbol table */
-typedef struct{
-	Node **table;
-} SymbolTable;
+// /* Symbol table */
+// typedef struct{
+// 	Node **table;
+// } SymbolTable;
 
 
-unsigned int hash(char* s);
+// unsigned int hash(char* s);
 
-SymbolTable* create();
-int lookup(SymbolTable* st, char* s);
-int insert(SymbolTable* st, char* s);
-void dump(SymbolTable* st);
+// SymbolTable* create();
+// int lookup(SymbolTable* st, char* s);
+// int insert(SymbolTable* st, char* s);
+// void dump(SymbolTable* st);
 
-/* Global symboltable */
-SymbolTable *ST;
+// /* Global symboltable */
+// SymbolTable *ST;
 
 %}
 
@@ -54,6 +56,9 @@ rmdrop	%
 relatop	<|<=|>=|>|==|!=
 logop	"&&"|"||"|"!"
 op {arithop}|{rmdrop}|{relatop}|{logop}
+
+/* Single bit Operators */
+SINGLEop {delim}|{arithop}|{rmdrop}
 
 /* Boolean Constants */
 boolean true|false
@@ -122,7 +127,9 @@ exit {
 }
 
 false {
-	return FALSE;
+	tokenString("BOOL", yytext);
+	yylval.bval = false;
+	return BOOL_VAL;
 }
 
 float {
@@ -142,7 +149,7 @@ int {
 }
 
 null {
-	return NULL;
+	return nULL;
 }
 
 object {
@@ -165,6 +172,10 @@ return {
 	return RETURN;
 }
 
+read {
+	return READ;
+}
+
 string {
 	return STRING;
 }
@@ -174,7 +185,9 @@ to {
 }
 
 true {
-	return TRUE;
+	tokenString("BOOL", yytext);
+	yylval.bval = true;
+	return BOOL_VAL;
 }
 
 type {
@@ -193,46 +206,87 @@ while {
 	return WHILE;
 }
 
-{delim} {
-	LIST;
-	return *yytext;
+{SINGLEop} {
+	token(yytext[0]);
+	return yytext[0];
 }
 
-{op} {
-	LIST;
-	return *yytext;
+">" {
+	token(yytext);
+	return GT;
 }
 
-{boolean} {
-	tokenString("Boolean",yytext);
+"<" {
+	token(yytext);
+	return LT;
+}
+
+">=" {
+	token(yytext);
+	return GE;
+}
+
+"<=" {
+	token(yytext);
+	return LE;
+}
+
+"==" {
+	token(yytext);
+	return EE;
+}
+
+"!=" {
+	token(yytext);
+	return NE;
+}
+
+"&&" {
+	token(yytext);
+	return AND;
+}
+
+"||" {
+	token(yytext);
+	return OR;
+}
+
+"!" {
+	token(yytext);
+	return NOT;
 }
 
 {integer} {
 	int buff;
 	sscanf(yytext,"%d",&buff);
-	tokenInteger("Integer",buff);
+	yylval.ival = buff;
+	tokenInteger("INT",buff);
+	return INT_VAL;
 }
 
 {realnum} {
 	double buff;
 	sscanf(yytext,"%lf",&buff);
-	tokenDouble("Real Constants",buff);
+	yylval.fval = buff;
+	tokenDouble("FLOAT",buff);
+	return FLOAT_VAL;
 }
 
 	/* Put Identifier into SymbolTable */
 {id} {
-	insert(ST, yytext);
-	tokenString("id",yytext);
+	yylval.sval = new string(yytext);
+	tokenString("ID",yytext);
+	return ID;
 }
 
 	/* String deal with double quote */
 {string} {
 	int flag = 0;
 
-	char c = input();
+	char c = getc(yyin);
 	
 	if(c == '"'){
-		unput(c);
+		ungetc(c, yyin);
 		yymore();
 	}
 	else{
@@ -257,7 +311,7 @@ while {
 			cnt++;
 		}
 		tokenString("String",buff);
-		unput(c);
+		ungetc(c, yyin);
 		free(buff);
 	}
 }
@@ -303,90 +357,90 @@ while {
 
 %%
 
-/* Hash function with division method */
-unsigned int hash(char* s){
-	unsigned int idx = 0;
-	while(1){
-		if(*(s) == 0){
-			break;
-		}
-		idx = idx + *(s++);
-	}
-	return idx % TABLE_SIZE;
-}
+// /* Hash function with division method */
+// unsigned int hash(char* s){
+// 	unsigned int idx = 0;
+// 	while(1){
+// 		if(*(s) == 0){
+// 			break;
+// 		}
+// 		idx = idx + *(s++);
+// 	}
+// 	return idx % TABLE_SIZE;
+// }
 
-/* Create a new symbol table */
-SymbolTable* create() {
-	SymbolTable *st = NULL;
-	st = malloc(sizeof(SymbolTable));
-	st->table = malloc(sizeof(Node) * TABLE_SIZE);
+// /* Create a new symbol table */
+// SymbolTable* create() {
+// 	SymbolTable *st = NULL;
+// 	st = malloc(sizeof(SymbolTable));
+// 	st->table = malloc(sizeof(Node) * TABLE_SIZE);
 
-	/* initial */
-	for(int i = 0; i < TABLE_SIZE; i++){
-		st->table[i] = NULL;
-	}
+// 	/* initial */
+// 	for(int i = 0; i < TABLE_SIZE; i++){
+// 		st->table[i] = NULL;
+// 	}
 
-	return st;
-}
+// 	return st;
+// }
 
-/* Check if s was already in symbol table */
-int lookup(SymbolTable* st, char* s){
-	unsigned int idx = hash(s);
-	Node *iter = st->table[idx];
+// /* Check if s was already in symbol table */
+// int lookup(SymbolTable* st, char* s){
+// 	unsigned int idx = hash(s);
+// 	Node *iter = st->table[idx];
 
-	for(; iter != NULL; iter = iter->next){
-		if(strcmp(s, iter->name) == 0){
-			return 1;
-		}
-	}
+// 	for(; iter != NULL; iter = iter->next){
+// 		if(strcmp(s, iter->name) == 0){
+// 			return 1;
+// 		}
+// 	}
 
-	return 0;
-}
+// 	return 0;
+// }
 
-/* Insert s into symbol table */
-int insert(SymbolTable* st, char* s){
-	unsigned int idx = hash(s);
-	Node *currentNode = st->table[idx];
-	Node *newNode = malloc(sizeof(Node));
+// /* Insert s into symbol table */
+// int insert(SymbolTable* st, char* s){
+// 	unsigned int idx = hash(s);
+// 	Node *currentNode = st->table[idx];
+// 	Node *newNode = malloc(sizeof(Node));
 
-	/* There is still space in this row, set as first node */
-	if(currentNode == NULL){
-		newNode->name = malloc(sizeof(char)*strlen(s));
-		strcpy(newNode->name, s);
-		newNode->next = NULL;
-		newNode->pre = NULL;
-		st->table[idx] = newNode;
-		return 1;
-	}
-	/* If it doesn't exist in the table, link to the end */
-	else{
-		Node *preNode = NULL;
-		for(; currentNode != NULL; currentNode = currentNode->next){
-			if(strcmp(s, currentNode->name) == 0){
-				return 1;
-			}
-			else{
-				preNode = currentNode;
-			}
-		}
+// 	/* There is still space in this row, set as first node */
+// 	if(currentNode == NULL){
+// 		newNode->name = malloc(sizeof(char)*strlen(s));
+// 		strcpy(newNode->name, s);
+// 		newNode->next = NULL;
+// 		newNode->pre = NULL;
+// 		st->table[idx] = newNode;
+// 		return 1;
+// 	}
+// 	/* If it doesn't exist in the table, link to the end */
+// 	else{
+// 		Node *preNode = NULL;
+// 		for(; currentNode != NULL; currentNode = currentNode->next){
+// 			if(strcmp(s, currentNode->name) == 0){
+// 				return 1;
+// 			}
+// 			else{
+// 				preNode = currentNode;
+// 			}
+// 		}
 		
-		newNode->name = malloc(sizeof(char)*strlen(s));
-		strcpy(newNode->name, s);
-		newNode->next = NULL;
-		newNode->pre = preNode;
-		preNode->next = newNode;
+// 		newNode->name = malloc(sizeof(char)*strlen(s));
+// 		strcpy(newNode->name, s);
+// 		newNode->next = NULL;
+// 		newNode->pre = preNode;
+// 		preNode->next = newNode;
 
-		return 1;
-	}
-}
+// 		return 1;
+// 	}
+// }
 
-/* Output Symbol Table */
-void dump(SymbolTable* st){
-	printf("=====SymbolTable=====\n");
-	for(int i = 0; i < TABLE_SIZE; i++){
-		Node *iter = st->table[i];
-		for(; iter != NULL; iter = iter->next){
-			printf("%s\n", iter->name);
-		}
-	}
-}
+// /* Output Symbol Table */
+// void dump(SymbolTable* st){
+// 	printf("=====SymbolTable=====\n");
+// 	for(int i = 0; i < TABLE_SIZE; i++){
+// 		Node *iter = st->table[i];
+// 		for(; iter != NULL; iter = iter->next){
+// 			printf("%s\n", iter->name);
+// 		}
+// 	}
+// }
