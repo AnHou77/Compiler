@@ -1,6 +1,6 @@
 %{
 #define LIST     strcat(buf,yytext)
-#define token(t) {LIST; printf("<%s>\n",t);}
+#define token(t) {LIST; printf("<%s>\n",t); return t;}
 #define tokenDel(t) {LIST; printf("<'%s'>\n",t);}
 #define tokenInteger(t,i) {LIST; printf("<%s: %d>\n",t,i);}
 #define tokenString(t,s) {LIST; printf("<%s: %s>\n",t,s);}
@@ -78,6 +78,8 @@ id	{letter}({digits}|{letter})*
 /* String Constants */
 string	\"(\"\"|[^\"\n])*\"
 
+char \'([^"\\\n]|\\.)\'
+
 /* Comments */
 c_comments	"/*"
 c_commente	"*/"
@@ -87,43 +89,43 @@ cpp_comment "//"[^\n]*
 
 	/* Keyword */
 boolean {
-	return BOOLEAN;
+	token(BOOLEAN);
 }
 
 break {
-	return BREAK;
+	token(BREAK);
 }
 
 char {
-	return CHAR;
+	token(CHAR);
 }
 
 case {
-	return CASE;
+	token(CASE);
 }
 
 class {
-	return CLASS;
+	token(CLASS);
 }
 
 continue {
-	return CONTINUE;
+	token(CONTINUE);
 }
 
 def {
-	return DEF;
+	token(DEF);
 }
 
 do {
-	return DO;
+	token(DO);
 }
 
 else {
-	return ELSE;
+	token(ELSE);
 }
 
 exit {
-	return EXIT;
+	token(EXIT);
 }
 
 false {
@@ -133,55 +135,55 @@ false {
 }
 
 float {
-	return FLOAT;
+	token(FLOAT);
 }
 
 for {
-	return FOR;
+	token(FOR);
 }
 
 if {
-	return IF;
+	token(IF);
 }
 
 int {
-	return INT;
+	token(INT);
 }
 
 null {
-	return nULL;
+	token(nULL);
 }
 
 object {
-	return OBJECT;
+	token(OBJECT);
 }
 
 print {
-	return PRINT;
+	token(PRINT);
 }
 
 println {
-	return PRINTLN;
+	token(PRINTLN);
 }
 
 repeat {
-	return REPEAT;
+	token(REPEAT);
 }
 
 return {
-	return RETURN;
+	token(RETURN);
 }
 
 read {
-	return READ;
+	token(READ);
 }
 
 string {
-	return STRING;
+	token(STRING);
 }
 
 to {
-	return TO;
+	token(TO);
 }
 
 true {
@@ -191,68 +193,67 @@ true {
 }
 
 type {
-	return TYPE;
+	token(TYPE);
 }
 
 val {
-	return VAL;
+	token(VAL);
 }
 
 var {
-	return VAR;
+	token(VAR);
 }
 
 while {
-	return WHILE;
+	token(WHILE);
 }
 
 {SINGLEop} {
 	token(yytext[0]);
-	return yytext[0];
 }
 
 ">" {
-	token(yytext);
+	tokenString("OP",yytext);
 	return GT;
 }
 
 "<" {
-	token(yytext);
+	tokenString("OP",yytext);
 	return LT;
 }
 
 ">=" {
-	token(yytext);
+	tokenString("OP",yytext);
 	return GE;
 }
 
 "<=" {
-	token(yytext);
+	tokenString("OP",yytext);
 	return LE;
 }
 
 "==" {
-	token(yytext);
+	tokenString("OP",yytext);
 	return EE;
 }
 
 "!=" {
-	token(yytext);
+	tokenString("OP",yytext);
 	return NE;
 }
 
 "&&" {
-	token(yytext);
+	tokenString("OP",yytext);
 	return AND;
 }
 
 "||" {
-	token(yytext);
+	tokenString("OP",yytext);
 	return OR;
 }
 
 "!" {
-	token(yytext);
+	tokenString("OP",yytext);
 	return NOT;
 }
 
@@ -313,7 +314,16 @@ while {
 		tokenString("String",buff);
 		ungetc(c, yyin);
 		free(buff);
+
+		yylval.sval = new string(buff);
+		return STRING_VAL
 	}
+}
+
+{char} {
+	tokenString("Char",yytext);
+	yylval.cval = yytext[1];
+	return CHAR_VAL;
 }
 
 {c_comments} {
