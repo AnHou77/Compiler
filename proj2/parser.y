@@ -6,6 +6,8 @@
 #include "lex.yy.cpp"
 
 void yyerror(string msg);
+
+SymbolTableS my_tables;
 %}
 
 %union{
@@ -15,13 +17,12 @@ void yyerror(string msg);
     char cval;
     string* sval;
     ValueDetail* val;
-    ValueType
+    ValueType type;
 }
 
 %start program
 
 /* tokens */
-%token SEMICOLON
 %token BOOLEAN BREAK CHAR CASE CLASS CONTINUE DEF DO ELSE EXIT FALSE FLOAT FOR IF INT
 %token nULL OBJECT PRINT PRINTLN REPEAT RETURN READ STRING TO TRUE TYPE VAL VAR WHILE 
 
@@ -35,8 +36,8 @@ void yyerror(string msg);
 %token <sval> STRING_VAL
 %token <sval> ID
 
-%token <val> EXPR CONST_VAL
-%token <ValueType> VAL_TYPE
+%type <val> EXPR CONST_VAL
+%type <type> VAL_TYPE
 
 %left OR
 %left AND
@@ -51,10 +52,15 @@ void yyerror(string msg);
 program:        
             OBJECT ID
             {
-                Trace("Reducing to program\n");
-            } '{' BLOCK_CONTENT '}'
+                int ID_idx = my_tables.table_vec[my_tables.first].insert(*$2, OBJECT_type);
+                if (ID_idx == -1){
+                    yyerror(*$2 + ": already exists !");
+                }
+            } '{' PRO_BLOCK_CONTENT '}'
             {
-
+                Trace("Reducing to program\n");
+                my_tables.dump();
+                my_tables.pop();
             };
 PRO_BLOCK_CONTENT:
             VAR_VAL_DEC PRO_BLOCK_CONTENT
@@ -136,6 +142,13 @@ TYPE_OPT:
         |
         ;
 
+VAL_TYPE:
+            INT
+        |   FLOAT
+        |   CHAR
+        |   STRING
+        |   BOOLEAN;
+
 METH_BLOCK_CONTENT: 
             VAR_VAL_DEC METH_BLOCK_CONTENT
         |   STMTS METH_BLOCK_CONTENT
@@ -179,6 +192,13 @@ EXPR:
         |   ID
         |   FUNC_INVOCATION
         |   ID '[' EXPR ']';
+
+CONST_VAL:
+            INT_VAL
+        |   FLOAT_VAL
+        |   BOOL_VAL
+        |   CHAR_VAL
+        |   STRING_VAL;
 
 FUNC_INVOCATION:
             ID '(' COMMA_SEPARATED_EXPR ')';

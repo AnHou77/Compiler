@@ -1,10 +1,10 @@
 %{
 #define LIST     strcat(buf,yytext)
-#define token(t) {LIST; printf("<%s>\n",t); return t;}
-#define tokenDel(t) {LIST; printf("<'%s'>\n",t);}
-#define tokenInteger(t,i) {LIST; printf("<%s: %d>\n",t,i);}
-#define tokenString(t,s) {LIST; printf("<%s: %s>\n",t,s);}
-#define tokenDouble(t,d) {LIST; printf("<%s: %lf>\n",t,d);}
+#define token(t) {LIST; cout<< t << endl; return t;}
+#define tokenDel(t) {LIST; cout<< t << endl;}
+#define tokenInteger(t,i) {LIST; cout<< t << ": " << i << endl;}
+#define tokenString(t,s) {LIST; cout<< t << ": " << s << endl;}
+#define tokenDouble(t,d) {LIST; cout<< t << ": " << d << endl;}
 
 #define MAX_LINE_LENG 256
 #define TABLE_SIZE 37
@@ -316,7 +316,7 @@ while {
 		free(buff);
 
 		yylval.sval = new string(buff);
-		return STRING_VAL
+		return STRING_VAL;
 	}
 }
 
