@@ -1,6 +1,6 @@
 all: parser
 
-parser: lex.yy.cpp y.tab.cpp st.cpp st.hpp
+parser: y.tab.cpp lex.yy.cpp st.cpp st.h
 	g++ y.tab.cpp st.cpp -o parser -ll -ly -std=c++11
 
 lex.yy.cpp: scanner.l
@@ -10,4 +10,4 @@ y.tab.cpp: parser.y
 	yacc -d parser.y -o y.tab.cpp
 
 clean:
-	rm parser lex.yy.cpp y.tab.*
+	rm parser lex.yy.* y.tab.*

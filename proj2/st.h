@@ -30,6 +30,8 @@ struct ValueDetail{
     char charValue = '\0';
     string *stringValue = new string();
     bool boolValue = false;
+
+    string arg_name = "";
 };
 
 struct IDDetail{
@@ -45,6 +47,8 @@ struct IDDetail{
 
     ValueType returnType = VAL_UNDEF_type;
 
+    vector<ValueDetail*> arg_val;
+
     bool needInit = true;
 };
 
@@ -57,6 +61,9 @@ public:
 
     int insert(string, IDType);
     int insert(string, IDType, ValueDetail*);
+    int insert(string, IDType, ValueType);
+    int insert(string, IDType, ValueType, int);
+
     IDDetail *lookup(string);
     bool checkIsExist(string);
 };
@@ -79,8 +86,20 @@ public:
     void dump();
 };
 
-IDDetail *INTconst(int);
-IDDetail *FLOATconst(float);
-IDDetail *CHARconst(char);
-IDDetail *STRINGconst(string);
-IDDetail *BOOLconst(bool);
+ValueDetail *INTconst(int);
+ValueDetail *FLOATconst(float);
+ValueDetail *CHARconst(char);
+ValueDetail *STRINGconst(string*);
+ValueDetail *BOOLconst(bool);
+
+ValueDetail* operator + (ValueDetail&, const ValueDetail&);
+ValueDetail* operator - (ValueDetail&, const ValueDetail&);
+ValueDetail* operator * (ValueDetail&, const ValueDetail&);
+ValueDetail* operator / (ValueDetail&, const ValueDetail&);
+ValueDetail* operator > (ValueDetail&, const ValueDetail&);
+ValueDetail* operator < (ValueDetail&, const ValueDetail&);
+ValueDetail* operator >= (ValueDetail&, const ValueDetail&);
+ValueDetail* operator <= (ValueDetail&, const ValueDetail&);
+ValueDetail* operator == (ValueDetail&, const ValueDetail&);
+ValueDetail* operator != (ValueDetail&, const ValueDetail&);
+

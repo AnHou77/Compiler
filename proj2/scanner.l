@@ -1,4 +1,5 @@
 %{
+
 #define LIST     strcat(buf,yytext)
 #define token(t) {LIST; cout<< t << endl; return t;}
 #define tokenDel(t) {LIST; cout<< t << endl;}
@@ -13,35 +14,15 @@ int linenum = 1;
 
 char buf[MAX_LINE_LENG];
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <memory.h>
+// #include <stdio.h>
+// #include <stdlib.h>
+// #include <memory.h>
 #include <iostream>
 #include <string>
 #include "y.tab.hpp"
 
-// /* Symbol Node */
-// typedef struct{
-// 	char *name;
-// 	void *pre;
-// 	void *next;
-// } Node;
+using namespace std;
 
-// /* Symbol table */
-// typedef struct{
-// 	Node **table;
-// } SymbolTable;
-
-
-// unsigned int hash(char* s);
-
-// SymbolTable* create();
-// int lookup(SymbolTable* st, char* s);
-// int insert(SymbolTable* st, char* s);
-// void dump(SymbolTable* st);
-
-// /* Global symboltable */
-// SymbolTable *ST;
 
 %}
 
@@ -129,8 +110,8 @@ exit {
 }
 
 false {
-	tokenString("BOOL", yytext);
-	yylval.bval = false;
+	// tokenString("BOOL", yytext);
+	// yylval.bval = false;
 	return BOOL_VAL;
 }
 
@@ -187,8 +168,8 @@ to {
 }
 
 true {
-	tokenString("BOOL", yytext);
-	yylval.bval = true;
+	// tokenString("BOOL", yytext);
+	// yylval.bval = true;
 	return BOOL_VAL;
 }
 
@@ -209,7 +190,7 @@ while {
 }
 
 {SINGLEop} {
-	token(yytext[0]);
+	return(yytext[0]);
 }
 
 ">" {
@@ -258,25 +239,27 @@ while {
 }
 
 {integer} {
-	int buff;
-	sscanf(yytext,"%d",&buff);
-	yylval.ival = buff;
-	tokenInteger("INT",buff);
+	// int buff;
+	// sscanf(yytext,"%d",&buff);
+	// yylval.ival = buff
+	// yylval.ival = atoi(yytext);
+	// tokenInteger("INT",buff);
 	return INT_VAL;
 }
 
 {realnum} {
-	double buff;
-	sscanf(yytext,"%lf",&buff);
-	yylval.fval = buff;
-	tokenDouble("FLOAT",buff);
+	// double buff;
+	// sscanf(yytext,"%lf",&buff);
+	// yylval.fval = buff;
+	// tokenDouble("FLOAT",buff);
+	// yylval.fval = atof(yytext);
 	return FLOAT_VAL;
 }
 
 	/* Put Identifier into SymbolTable */
 {id} {
-	yylval.sval = new string(yytext);
-	tokenString("ID",yytext);
+	// yylval.sval = new string(yytext);
+	// tokenString("ID",yytext);
 	return ID;
 }
 
@@ -313,16 +296,16 @@ while {
 		}
 		tokenString("String",buff);
 		ungetc(c, yyin);
-		free(buff);
 
-		yylval.sval = new string(buff);
+		// yylval.sval = new string(buff);
+		// free(buff);
 		return STRING_VAL;
 	}
 }
 
 {char} {
 	tokenString("Char",yytext);
-	yylval.cval = yytext[1];
+	// yylval.cval = yytext[1];
 	return CHAR_VAL;
 }
 
