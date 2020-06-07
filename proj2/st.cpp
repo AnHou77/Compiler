@@ -8,61 +8,59 @@ bool SymbolTable::checkIsExist(string name){
     return false;
 }
 
-int SymbolTable::insert(string name, IDType type){
+int SymbolTable::insert(string name, IDType id_type){
     if (checkIsExist(name)) {
         return -1;
     }
-    table[name]->type = type;
-    table[name]->idx = idx;
-    idx++;
-    table[name]->name = name;
-    return idx;
+    IDDetail *tmp = new IDDetail;
+    tmp->type = id_type;
+    tmp->name = name;
+    table[name] = tmp;
+    return 1;
 }
 
-int SymbolTable::insert(string name, IDType type, ValueDetail *val){
+int SymbolTable::insert(string name, IDType id_type, ValueDetail *val){
     if (checkIsExist(name)) {
         return -1;
     }
-    table[name]->type = type;
-    table[name]->idx = idx;
-    idx++;
-    table[name]->name = name;
-    table[name]->val = val;
-    table[name]->needInit = false;
-    return idx;
+    IDDetail *tmp = new IDDetail;
+    tmp->type = id_type;
+    tmp->name = name;
+    tmp->val = val;
+    tmp->needInit = false;
+    table[name] = tmp;
+    return 1;
 }
 
 int SymbolTable::insert(string name, IDType id_type, ValueType val_type){
     if (checkIsExist(name)) {
         return -1;
     }
-    table[name]->type = id_type;
-    table[name]->idx = idx;
-    idx++;
-    table[name]->name = name;
-    table[name]->val->type = val_type;
-    return idx;
+    IDDetail *tmp = new IDDetail;
+    tmp->type = id_type;
+    tmp->name = name;
+    tmp->val->type = val_type;
+    table[name] = tmp;
+    return 1;
 }
 
 int SymbolTable::insert(string name, IDType id_type, ValueType arr_type, int size){
     if (checkIsExist(name)) {
         return -1;
     }
-    
-    table[name]->type = id_type;
-    table[name]->idx = idx;
-    idx++;
-    table[name]->name = name;
-    table[name]->val = NULL;
+    IDDetail *tmp = new IDDetail;
+    tmp->type = id_type;
+    tmp->name = name;
+    tmp->val = NULL;
     
     // initial array
-    table[name]->arrType = arr_type;
-    table[name]->arrLength = size;
+    tmp->arrType = arr_type;
+    tmp->arrLength = size;
     for (int i = 0; i < size; i++){
-        table[name]->arr_val.push_back(new ValueDetail());
+        tmp->arr_val.push_back(new ValueDetail());
     }
-    
-    return idx;
+    table[name] = tmp;
+    return 1;
 }
 
 IDDetail* SymbolTable::lookup(string name){
@@ -72,9 +70,23 @@ IDDetail* SymbolTable::lookup(string name){
     return NULL;
 }
 
+void SymbolTable::dump(){
+    if (!table.empty()){
+        for (map<string, IDDetail *>::iterator iter = table.begin(); iter != table.end(); iter++)
+        {
+            cout << "ID: " << iter->first << "\tType: " << getIDTypeStr(iter->second->type);
+            if (iter->second->type == CONST_type || iter->second->type == VAR_type){
+                cout << "\t ValueType:" << getVALTypeStr(iter->second->val->type);
+            }
+            cout << endl;
+        }
+        cout << "------------------------------------------------" << endl;
+    }
+}
+
 void SymbolTableS::push(){
     table_vec.push_back(SymbolTable());
-    first++;
+    ++first;
 }
 
 bool SymbolTableS::pop(){
@@ -82,7 +94,7 @@ bool SymbolTableS::pop(){
         return false;
     }
     table_vec.pop_back();
-    first--;
+    --first;
     return true;
 }
 
@@ -94,6 +106,16 @@ IDDetail* SymbolTableS::lookup(string name){
         }
     }
     return NULL;
+}
+
+void SymbolTableS::dump(){
+    if(first >= 0){
+        cout << "=================Symbol Tables=================" << endl;
+        for (int i = 0; i <= first; i++){
+            cout << "---------------------------------(" << i << ")" << endl;
+            table_vec[i].dump();
+        }
+    }
 }
 
 ValueDetail *INTconst(int val){
@@ -353,4 +375,39 @@ ValueDetail* operator != (ValueDetail& left, const ValueDetail& right){
         }
     }
     return tmp;
+}
+
+string getIDTypeStr(IDType type){
+    switch (type)
+    {
+    case CONST_type:
+        return "Constant_ID";
+    case VAR_type:
+        return "Variable_ID";
+    case ARRAY_type:
+        return "Array_ID";
+    case FUNC_type:
+        return "Function_ID";
+    case OBJECT_type:
+        return "Object_ID";
+    default:
+        return "Undefined_Type_ID";
+    }
+}
+string getVALTypeStr(ValueType type){
+    switch (type)
+    {
+    case INT_type:
+        return "Integer_Value";
+    case FLOAT_type:
+        return "float_Value";
+    case CHAR_type:
+        return "Char_Value";
+    case STRING_type:
+        return "String_Value";
+    case BOOL_type:
+        return "Boolean_Value";
+    default:
+        return "Undefined_Type_Value";
+    }
 }

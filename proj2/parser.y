@@ -19,11 +19,9 @@ SymbolTableS my_tables;
     char cval;
     string* sval;
 
-    // ValueDetail* val;
-    // vector<ValueDetail*> vals;
     ValueType type;
     ValueDetail* arg;
-    vector<ValueDetail*> args;
+    vector<ValueDetail*> *args;
 }
 
 %start program
@@ -40,9 +38,7 @@ SymbolTableS my_tables;
 %token <bval> BOOL_VAL
 %token <cval> CHAR_VAL
 %token <sval> STRING_VAL ID
-/* 
-%type <val> 
-%type <vals>  */
+
 %type <type> VAL_TYPE TYPE_OPT FUNC_INVOCATION
 %type <arg> FORMAL_ARG EXPR CONST_VAL
 %type <args> FORMAL_ARGS COMMA_SEPARATED_EXPR
@@ -60,6 +56,8 @@ SymbolTableS my_tables;
 program:        
             OBJECT ID
             {
+                my_tables.push();
+                cout<<my_tables.table_vec.size()<<endl<<my_tables.first<<endl;
                 int ID_idx = my_tables.table_vec[my_tables.first].insert(*$2, OBJECT_type);
                 if (ID_idx == isExist){
                     yyerror(*$2 + ": already exists !");
@@ -107,7 +105,7 @@ CONSTANT_DEC:
 VARIABLE_DEC:
             VAR ID ':' VAL_TYPE
             {
-                int ID_idx = my_tables.table_vec[my_tables.first].insert(*$2, VAL_type, $4);
+                int ID_idx = my_tables.table_vec[my_tables.first].insert(*$2, CONST_type, $4);
                 if (ID_idx == isExist){
                     yyerror(*$2 + ": already exists !");
                 }
@@ -115,7 +113,7 @@ VARIABLE_DEC:
             }
         |   VAR ID '=' EXPR
             {
-                int ID_idx = my_tables.table_vec[my_tables.first].insert(*$2, VAL_type, $4);
+                int ID_idx = my_tables.table_vec[my_tables.first].insert(*$2, CONST_type, $4);
                 if (ID_idx == isExist){
                     yyerror(*$2 + ": already exists !");
                 }
@@ -126,7 +124,7 @@ VARIABLE_DEC:
                 if ($4 != $6->type){
                     yyerror("Error assignment: Type different !");
                 }
-                int ID_idx = my_tables.table_vec[my_tables.first].insert(*$2, VAL_type, $6);
+                int ID_idx = my_tables.table_vec[my_tables.first].insert(*$2, CONST_type, $6);
                 if (ID_idx == isExist){
                     yyerror(*$2 + ": already exists !");
                 }
@@ -134,7 +132,7 @@ VARIABLE_DEC:
             }
         |   VAR ID
             {
-                int ID_idx = my_tables.table_vec[my_tables.first].insert(*$2, VAL_type, VAL_UNDEF_type);
+                int ID_idx = my_tables.table_vec[my_tables.first].insert(*$2, CONST_type, VAL_UNDEF_type);
                 if (ID_idx == isExist){
                     yyerror(*$2 + ": already exists !");
                 }
@@ -176,13 +174,13 @@ METHOD:
 FORMAL_ARGS:
             FORMAL_ARG
             {
-                vector<ValueDetail*> tmp = new vector<ValueDetail*>();
-                tmp.push_back($1);
+                vector<ValueDetail*>* tmp = new vector<ValueDetail*>();
+                tmp->push_back($1);
                 $$ = tmp;
             }
         |   FORMAL_ARG ',' FORMAL_ARGS
             {  
-                $3.push_back($1);
+                $3->push_back($1);
                 $$ = $3;
             }
         |
@@ -218,10 +216,25 @@ TYPE_OPT:
 
 VAL_TYPE:
             INT
+            {
+                $$ = INT_type;
+            }
         |   FLOAT
+            {
+                $$ = FLOAT_type;
+            }
         |   CHAR
+            {
+                $$ = CHAR_type;
+            }
         |   STRING
-        |   BOOLEAN;
+            {
+                $$ = STRING_type;
+            }
+        |   BOOLEAN
+            {
+                $$ = BOOL_type;
+            };
 
 METH_BLOCK_CONTENT: 
             VAR_VAL_DEC METH_BLOCK_CONTENT
@@ -255,7 +268,7 @@ STMT_SIMPLE:
 
                 if (!tmp->needInit){
                     if (tmp->val->type != $3->type){
-                        yyerror("Sorry, differnt type can't be assigned !\n")
+                        yyerror("Sorry, differnt type can't be assigned !\n");
                     }
                     *(tmp->val) = *$3;
                 }
@@ -518,7 +531,7 @@ EXPR:
                 }
 
                 ValueDetail* arr_tmp = new ValueDetail();
-                arr_tmp = tmp->arr_val[$3->intValue]
+                arr_tmp = tmp->arr_val[$3->intValue];
                 $$ = arr_tmp;
             };
 
@@ -555,28 +568,26 @@ FUNC_INVOCATION:
                 }
 
                 if (tmp->type != FUNC_type){
-                    yyerror("This ID is not a function !\n")
+                    yyerror("This ID is not a function !\n");
                 }
 
-                if ($3.size() != tmp->arg_val.size()){
-                    yyerror("Wrong argument size !\n")
+                if ($3->size() != tmp->arg_val->size()){
+                    yyerror("Wrong argument size !\n");
                 }
 
-                ValueDetail* val_tmp = new ValueDetail();
-                val_tmp->type = tmp->returnType;
-                $$ = val_tmp;
+                $$ = tmp->returnType;
             };
 
 COMMA_SEPARATED_EXPR:
             EXPR
             {
-                vector<ValueDetail*> tmp = new vector<ValueDetail*>();
-                tmp.push_back($1);
+                vector<ValueDetail*>* tmp = new vector<ValueDetail*>();
+                tmp->push_back($1);
                 $$ = tmp;
             }
         |   EXPR ',' COMMA_SEPARATED_EXPR
             {
-                $3.push_back($1);
+                $3->push_back($1);
                 $$ = $3;
             }
         |
@@ -628,7 +639,9 @@ WHILE_LOOP:
 FOR_LOOP:
             FOR '(' ID LT '-' INT_VAL TO INT_VAL ')' 
             {
-                if($3->type != VAR_type){
+                IDDetail* tmp = new IDDetail();
+                tmp = my_tables.lookup(*$3);
+                if(tmp->type != VAR_type){
                     yyerror("This ID must be variable type !\n");
                 }
             }
@@ -667,5 +680,5 @@ int main(int argc, char **argv)
     if (yyparse() == 1)                 /* parsing */
         yyerror("Parsing error !");     /* syntax error */
 
-
+    my_tables.dump();
 }

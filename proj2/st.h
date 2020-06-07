@@ -47,16 +47,15 @@ struct IDDetail{
 
     ValueType returnType = VAL_UNDEF_type;
 
-    vector<ValueDetail*> arg_val;
+    vector<ValueDetail*> *arg_val;
 
     bool needInit = true;
 };
 
 class SymbolTable{
 public:
-    SymbolTable(){idx = 0;};
-    
-    int idx;
+    SymbolTable(){table.clear();};
+
     map<string, IDDetail*> table;
 
     int insert(string, IDType);
@@ -66,6 +65,8 @@ public:
 
     IDDetail *lookup(string);
     bool checkIsExist(string);
+
+    void dump();
 };
 
 class SymbolTableS{
@@ -102,4 +103,7 @@ ValueDetail* operator >= (ValueDetail&, const ValueDetail&);
 ValueDetail* operator <= (ValueDetail&, const ValueDetail&);
 ValueDetail* operator == (ValueDetail&, const ValueDetail&);
 ValueDetail* operator != (ValueDetail&, const ValueDetail&);
+
+string getIDTypeStr(IDType);
+string getVALTypeStr(ValueType);
 

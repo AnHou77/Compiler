@@ -110,8 +110,8 @@ exit {
 }
 
 false {
-	// tokenString("BOOL", yytext);
-	// yylval.bval = false;
+	//tokenString("BOOL", yytext);
+	yylval.bval = false;
 	return BOOL_VAL;
 }
 
@@ -168,8 +168,8 @@ to {
 }
 
 true {
-	// tokenString("BOOL", yytext);
-	// yylval.bval = true;
+	//tokenString("BOOL", yytext);
+	yylval.bval = true;
 	return BOOL_VAL;
 }
 
@@ -190,76 +190,72 @@ while {
 }
 
 {SINGLEop} {
-	return(yytext[0]);
+	token(yytext[0]);
 }
 
 ">" {
-	tokenString("OP",yytext);
+	//tokenString("OP",yytext);
 	return GT;
 }
 
 "<" {
-	tokenString("OP",yytext);
+	//tokenString("OP",yytext);
 	return LT;
 }
 
 ">=" {
-	tokenString("OP",yytext);
+	//tokenString("OP",yytext);
 	return GE;
 }
 
 "<=" {
-	tokenString("OP",yytext);
+	//tokenString("OP",yytext);
 	return LE;
 }
 
 "==" {
-	tokenString("OP",yytext);
+	//tokenString("OP",yytext);
 	return EE;
 }
 
 "!=" {
-	tokenString("OP",yytext);
+	//tokenString("OP",yytext);
 	return NE;
 }
 
 "&&" {
-	tokenString("OP",yytext);
+	//tokenString("OP",yytext);
 	return AND;
 }
 
 "||" {
-	tokenString("OP",yytext);
+	//tokenString("OP",yytext);
 	return OR;
 }
 
 "!" {
-	tokenString("OP",yytext);
+	//tokenString("OP",yytext);
 	return NOT;
 }
 
 {integer} {
-	// int buff;
-	// sscanf(yytext,"%d",&buff);
-	// yylval.ival = buff
-	// yylval.ival = atoi(yytext);
-	// tokenInteger("INT",buff);
+	int buff = atoi(yytext);
+	yylval.ival = buff;
+	//tokenInteger("INT",buff);
 	return INT_VAL;
 }
 
 {realnum} {
-	// double buff;
-	// sscanf(yytext,"%lf",&buff);
-	// yylval.fval = buff;
-	// tokenDouble("FLOAT",buff);
-	// yylval.fval = atof(yytext);
+	double buff = atof(yytext);
+	yylval.fval = buff;
+	//tokenDouble("FLOAT",buff);
 	return FLOAT_VAL;
 }
 
 	/* Put Identifier into SymbolTable */
 {id} {
-	// yylval.sval = new string(yytext);
-	// tokenString("ID",yytext);
+	yylval.sval = new string(yytext);
+	//tokenString("ID",yytext);
 	return ID;
 }
 
@@ -294,18 +290,18 @@ while {
 			buff[cnt] = yytext[i];
 			cnt++;
 		}
-		tokenString("String",buff);
+		//tokenString("String",buff);
 		ungetc(c, yyin);
 
-		// yylval.sval = new string(buff);
-		// free(buff);
+		yylval.sval = new string(buff);
+		free(buff);
 		return STRING_VAL;
 	}
 }
 
 {char} {
-	tokenString("Char",yytext);
-	// yylval.cval = yytext[1];
+	//tokenString("Char",yytext);
+	yylval.cval = yytext[1];
 	return CHAR_VAL;
 }
 
