@@ -72,12 +72,11 @@ public:
 class SymbolTableS{
 public:
     SymbolTableS(){
-        first = -1;  
-        push();
+        first = -1;
     };
     
     vector<SymbolTable> table_vec;
-    int first;
+    int first = -1;
 
     void push();
     void pop();

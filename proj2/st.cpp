@@ -99,6 +99,7 @@ void SymbolTable::dump(){
 void SymbolTableS::push(){
     table_vec.push_back(SymbolTable());
     first++;
+    cout << "push" << first << endl;
 }
 
 /* pop top one table */
@@ -121,8 +122,10 @@ IDDetail* SymbolTableS::lookup(string name){
 void SymbolTableS::dump(){
     if(first >= 0){
         cout << "=================Symbol Tables=================" << endl;
-        for (int i = 0; i <= first; i++){
+        for (int i = 0; i < table_vec.size(); i++){
+            cout << "------------------ Table: " << i <<" ------------------" << endl;
             table_vec[i].dump();
+            cout << "-----------------------------------------------" << endl;
         }
         cout << "===============================================" << endl;
     }

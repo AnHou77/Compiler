@@ -174,8 +174,10 @@ METHOD:
                 if (ID_idx == isExist){
                     yyerror(*$2 + ": already exists !");
                 }
+                my_tables.push();
             } '(' FORMAL_ARGS ')' TYPE_OPT 
             {
+
                 IDDetail *tmp = my_tables.lookup(*$2);
 
                 tmp->arg_val = $5;
@@ -183,7 +185,6 @@ METHOD:
                 if($7 != VAL_UNDEF_type){
                     tmp->returnType = $7;
                 }
-                my_tables.push();
             } '{' METH_BLOCK_CONTENT '}'
             {
                 Trace("In Function Block\n")
