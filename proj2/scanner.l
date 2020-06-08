@@ -1,11 +1,13 @@
 %{
 
+#define DEBUG	0
+
 #define LIST     strcat(buf,yytext)
-#define token(t) {LIST; cout<< t << endl; return t;}
-#define tokenDel(t) {LIST; cout<< t << endl;}
-#define tokenInteger(t,i) {LIST; cout<< t << ": " << i << endl;}
-#define tokenString(t,s) {LIST; cout<< t << ": " << s << endl;}
-#define tokenDouble(t,d) {LIST; cout<< t << ": " << d << endl;}
+#define token(t) {LIST; if(DEBUG){cout<< t << endl;} return t;}
+#define tokenDel(t) {LIST; if(DEBUG){cout<< t << endl;}}
+#define tokenInteger(t,i) {LIST; if(DEBUG){cout<< t << ": " << i << endl;}}
+#define tokenString(t,s) {LIST; if(DEBUG){cout<< t << ": " << s << endl;}}
+#define tokenDouble(t,d) {LIST; if(DEBUG){cout<< t << ": " << d << endl;}}
 
 #define MAX_LINE_LENG 256
 
@@ -52,6 +54,7 @@ id	{letter}({digits}|{letter})*
 /* String Constants */
 string	\"(\"\"|[^\"\n])*\"
 
+/* Char Constant */
 char \'([^"\\\n]|\\.)\'
 
 /* Comments */
@@ -103,7 +106,7 @@ exit {
 }
 
 false {
-	//tokenString("BOOL", yytext);
+	tokenString("BOOL", yytext);
 	yylval.bval = false;
 	return BOOL_VAL;
 }
@@ -161,7 +164,7 @@ to {
 }
 
 true {
-	//tokenString("BOOL", yytext);
+	tokenString("BOOL", yytext);
 	yylval.bval = true;
 	return BOOL_VAL;
 }
@@ -187,68 +190,68 @@ while {
 }
 
 ">" {
-	//tokenString("OP",yytext);
+	tokenString("OP",yytext);
 	return GT;
 }
 
 "<" {
-	//tokenString("OP",yytext);
+	tokenString("OP",yytext);
 	return LT;
 }
 
 ">=" {
-	//tokenString("OP",yytext);
+	tokenString("OP",yytext);
 	return GE;
 }
 
 "<=" {
-	//tokenString("OP",yytext);
+	tokenString("OP",yytext);
 	return LE;
 }
 
 "==" {
-	//tokenString("OP",yytext);
+	tokenString("OP",yytext);
 	return EE;
 }
 
 "!=" {
-	//tokenString("OP",yytext);
+	tokenString("OP",yytext);
 	return NE;
 }
 
 "&&" {
-	//tokenString("OP",yytext);
+	tokenString("OP",yytext);
 	return AND;
 }
 
 "||" {
-	//tokenString("OP",yytext);
+	tokenString("OP",yytext);
 	return OR;
 }
 
 "!" {
-	//tokenString("OP",yytext);
+	tokenString("OP",yytext);
 	return NOT;
 }
 
 {integer} {
 	int buff = atoi(yytext);
 	yylval.ival = buff;
-	//tokenInteger("INT",buff);
+	tokenInteger("INT",buff);
 	return INT_VAL;
 }
 
 {realnum} {
 	double buff = atof(yytext);
 	yylval.fval = buff;
-	//tokenDouble("FLOAT",buff);
+	tokenDouble("FLOAT",buff);
 	return FLOAT_VAL;
 }
 
 	/* Put Identifier into SymbolTable */
 {id} {
 	yylval.sval = new string(yytext);
-	//tokenString("ID",yytext);
+	tokenString("ID",yytext);
 	return ID;
 }
 
@@ -283,7 +286,7 @@ while {
 			buff[cnt] = yytext[i];
 			cnt++;
 		}
-		//tokenString("String",buff);
+		tokenString("String",buff);
 		ungetc(c, yyin);
 
 		yylval.sval = new string(buff);
@@ -293,7 +296,7 @@ while {
 }
 
 {char} {
-	//tokenString("Char",yytext);
+	tokenString("Char",yytext);
 	yylval.cval = yytext[1];
 	return CHAR_VAL;
 }
@@ -314,7 +317,7 @@ while {
 
 <C_COMMENT>\n {
 	LIST;
-	//printf("%d: %s", linenum++, buf);
+	printf("%d: %s", linenum++, buf);
     buf[0] = '\0';
 }
 
@@ -324,7 +327,7 @@ while {
 
 \n	{
     	LIST;
-        //printf("%d: %s", linenum++, buf);
+        printf("%d: %s", linenum++, buf);
     	buf[0] = '\0';
 }
 
@@ -332,8 +335,8 @@ while {
 
 .	{
         LIST;
-        printf("%d:%s\n", linenum+1, buf);
-        printf("bad character:'%s'\n",yytext);
+        cout << linenum+1 << ":" << buf << endl;
+		cout << "bad character: " << yytext << endl;
         exit(-1);
 }
 

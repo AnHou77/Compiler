@@ -70,15 +70,15 @@ program:
                     yyerror(*$2 + ": already exists !");
                 }
                 Trace("OBJECT ID\n");
-            } '{' PRO_BLOCK_CONTENT_BASE '}'
+            } '{' PRO_BLOCK_CONTENT '}'
             {
                 my_tables.dump();
                 my_tables.pop();
                 Trace("{ Reducing to program }\n");
             };
-/* At least one method */
+/* Program's block should have at least one method
 PRO_BLOCK_CONTENT_BASE:
-            METHOD PRO_BLOCK_CONTENT;
+            METHOD PRO_BLOCK_CONTENT; */
 
 /* Program's block contents */
 PRO_BLOCK_CONTENT:
@@ -166,6 +166,7 @@ ARRAY_DEC:
 
 /* Method declaration */
 METHOD:
+            /* def ID (arguments) <type> { block contents } */
             DEF ID 
             {
                 Trace("DEF ID ( ARGS ) <:TYPE> {METHOD}");
@@ -192,6 +193,7 @@ METHOD:
 
 /* Arguments declaration */
 FORMAL_ARGS:
+            /* single argument */
             FORMAL_ARG
             {
                 Trace("FORMAL_ARG\n");
@@ -199,6 +201,7 @@ FORMAL_ARGS:
                 tmp->push_back($1);
                 $$ = tmp;
             }
+            /* Muti arguments */
         |   FORMAL_ARG ',' FORMAL_ARGS
             {  
                 Trace("FORMAL_ARG, FORMAL_ARGS\n");
@@ -206,6 +209,7 @@ FORMAL_ARGS:
                 $$ = $3;
             }
         |
+            /* empty entry */
             {
                 $$ = new vector<ValueDetail*>();
             }
@@ -213,6 +217,7 @@ FORMAL_ARGS:
 
 /* Argument declaration */
 FORMAL_ARG:
+            /* ID : type */
             ID ':' VAL_TYPE
             {
                 Trace("ID : VAL_TYPE\n");
@@ -230,12 +235,14 @@ FORMAL_ARG:
 
 /* Function has returntype is optional */
 TYPE_OPT:
+            /* return VAL_TYPE */
             ':' VAL_TYPE
             {
                 Trace("<: VAL_TYPE>\n");
                 $$ = $2;
             }
         |
+            /* empty entry */
             {
                 $$ = VAL_UNDEF_type;
             }
@@ -285,6 +292,7 @@ STMT:
 
 /* simple statement declaration */
 STMT_SIMPLE:
+            /* ID = EXPR */
             ID '=' EXPR
             {
                 Trace("STMT(ID = EXPR)\n");
@@ -294,24 +302,27 @@ STMT_SIMPLE:
                 if (tmp == NULL){
                     yyerror("This ID does not exist !\n");
                 }
-
-                if (tmp->type != VAR_type){
-                    yyerror("Sorry, it can't be assgined !\n");
-                }
-
-                if (!tmp->needInit){
-                    if (tmp->val->type != $3->type){
-                        yyerror("Sorry, differnt type can't be assigned !\n");
-                    }
-                    *(tmp->val) = *$3;
-                }
+                
                 else{
-                    tmp->val = new ValueDetail();
-                    *(tmp->val) = *$3;
-                    tmp->needInit = false;
-                }
+                    if (tmp->type != VAR_type){
+                        yyerror("Sorry, it can't be assgined !\n");
+                    }
 
+                    if (!tmp->needInit){
+                        if (tmp->val->type != $3->type){
+                            yyerror("Sorry, differnt type can't be assigned !\n");
+                        }
+                        *(tmp->val) = *$3;
+                    }
+                    else{
+                        tmp->val = new ValueDetail();
+                        *(tmp->val) = *$3;
+                        tmp->needInit = false;
+                    }
+                }
             }
+            /* ID [EXPR] = EXPR */
+            /* ID should be array type */
         |   ID '[' EXPR ']' '=' EXPR
             {
                 Trace("STMT(ID [EXPR] = EXPR)\n");
@@ -322,21 +333,27 @@ STMT_SIMPLE:
                     yyerror("This ID does not exist !\n");
                 }
 
-                if (tmp->type != ARRAY_type){
-                    yyerror("Sorry, it can't be assgined !\n");
-                }
+                else{
+                    if (tmp->type != ARRAY_type){
+                        yyerror("Sorry, it can't be assgined !\n");
+                    }
 
-                if ($3->type != INT_type){
-                    yyerror("Sorry, array size must be Integer !\n");
-                }
+                    if ($3->type != INT_type){
+                        yyerror("Sorry, array size must be Integer !\n");
+                    }
 
-                if (tmp->arrType != $6->type){
-                    yyerror("Sorry, different type can't be assigned !\n");
+                    if (tmp->arrType != $6->type){
+                        yyerror("Sorry, different type can't be assigned !\n");
+                    }
+
+                    *(tmp->arr_val[$3->intValue]) = *$6;
                 }
-                *(tmp->arr_val[$3->intValue]) = *$6;
             }
+            /* Print EXPR */
         |   PRINT EXPR 
+            /* Println EXPR */
         |   PRINTLN EXPR
+            /* To get ID */
         |   READ ID
             {
                 IDDetail* tmp = new IDDetail();
@@ -346,13 +363,18 @@ STMT_SIMPLE:
                     yyerror("This ID does not exist !\n");
                 }
             }
+            /* Return without expression */
         |   RETURN
+            /* Return EXPR */
         |   RETURN EXPR
+            /* EXPR */
         |   EXPR
+            /* Call function */
         |   FUNC_INVOCATION;
 
 /* Expression declaration */
 EXPR:
+            /* - EXPR */
             '-' EXPR %prec UMINUS
             {
                 Trace("-EXPR\n");
@@ -368,6 +390,7 @@ EXPR:
                     yyerror("Value type must be Integer & Float !\n");
                 }
             }
+            /* EXPR * EXPR with the same type */
         |   EXPR '*' EXPR
             {
                 Trace("EXPR * EXPR\n");
@@ -381,6 +404,7 @@ EXPR:
                     yyerror("Value type must be Integer & Float !\n");
                 }
             }
+            /* EXPR / EXPR with the same type */
         |   EXPR '/' EXPR
             {
                 Trace("EXPR / EXPR\n");
@@ -394,6 +418,7 @@ EXPR:
                     yyerror("Value type must be Integer & Float !\n");
                 }
             }
+            /* EXPR + EXPR with the same type */
         |   EXPR '+' EXPR
             {
                 Trace("EXPR + EXPR\n");
@@ -407,6 +432,7 @@ EXPR:
                     yyerror("Value type must be Integer & Float !\n");
                 }
             }
+            /* EXPR - EXPR with the same type */
         |   EXPR '-' EXPR
             {
                 Trace("EXPR - EXPR\n");
@@ -420,6 +446,7 @@ EXPR:
                     yyerror("Value type must be Integer & Float !\n");
                 }
             }
+            /* return (EXPR < EXPR) with boolean */
         |   EXPR LT EXPR
             {
                 Trace("EXPR < EXPR\n");
@@ -433,6 +460,7 @@ EXPR:
                     yyerror("Value type must be Integer & Float !\n");
                 }
             }
+            /* return (EXPR <= EXPR) with boolean */
         |   EXPR LE EXPR
             {
                 Trace("EXPR <= EXPR\n");
@@ -446,6 +474,7 @@ EXPR:
                     yyerror("Value type must be Integer & Float !\n");
                 }
             }
+            /* return (EXPR == EXPR) with boolean */
         |   EXPR EE EXPR
             {
                 Trace("EXPR == EXPR\n");
@@ -455,8 +484,10 @@ EXPR:
                 if($1->type == VAL_UNDEF_type){
                     yyerror("There is an undefined type expression !\n");
                 }
+                /* == can compared with any type */
                 $$ = (*$1 == *$3);
             }
+            /* return (EXPR >= EXPR) with boolean */
         |   EXPR GE EXPR
             {
                 Trace("EXPR >= EXPR\n");
@@ -470,6 +501,7 @@ EXPR:
                     yyerror("Value type must be Integer & Float !\n");
                 }
             }
+            /* return (EXPR > EXPR) with boolean */
         |   EXPR GT EXPR
             {
                 Trace("EXPR > EXPR\n");
@@ -483,6 +515,7 @@ EXPR:
                     yyerror("Value type must be Integer & Float !\n");
                 }
             }
+            /* return (EXPR != EXPR) with boolean */
         |   EXPR NE EXPR
             {
                 Trace("EXPR != EXPR\n");
@@ -492,8 +525,10 @@ EXPR:
                 if($1->type == VAL_UNDEF_type){
                     yyerror("There is an undefined type expression !\n");
                 }
+                /* != can compared with any type */
                 $$ = (*$1 != *$3);
             }
+            /* return (!EXPR) with boolean */
         |   NOT EXPR
             {
                 Trace("! EXPR\n");
@@ -509,6 +544,7 @@ EXPR:
                 }
                 $$ = tmp;
             }
+            /* return (EXPR && EXPR) with boolean */
         |   EXPR AND EXPR
             {
                 Trace("EXPR && EXPR\n");
@@ -523,6 +559,7 @@ EXPR:
                 tmp->boolValue = ($1->boolValue && $3->boolValue);
                 $$ = tmp;
             }
+            /* return (EXPR && EXPR) with boolean */
         |   EXPR OR EXPR
             {
                 Trace("EXPR || EXPR\n");
@@ -537,17 +574,20 @@ EXPR:
                 tmp->boolValue = ($1->boolValue || $3->boolValue);
                 $$ = tmp;
             }
+            /* ( EXPR ) */
+            /* For print & println */
         |   '(' EXPR ')'
             {
                 Trace("( EXPR )\n");
                 $$ = $2;
             }
+            /* Value */
         |   CONST_VAL
             {
                 Trace("EXPR(Const_value)\n");
-                cout<< "---INT---"<<endl;
                 $$ = $1;
             }
+            /* ID */
         |   ID
             {
                 Trace("EXPR(ID)\n");
@@ -555,20 +595,24 @@ EXPR:
                 if (tmp == NULL){
                     yyerror("This ID does not exist !\n");
                 }
+                else{
+                    if (tmp->type != CONST_type && tmp->type != VAR_type){
+                        yyerror("Can get this ID value !\n");
+                    }
 
-                if (tmp->type != CONST_type && tmp->type != VAR_type){
-                    yyerror("Can get this ID value !\n");
+                    $$ = tmp->val;
                 }
-
-                $$ = tmp->val;
             }
+            /* Call function */
         |   FUNC_INVOCATION
             {
-                Trace("FUNCTION_CALL")
+                Trace("FUNCTION_CALL\n");
                 ValueDetail* tmp = new ValueDetail();
                 tmp->type = $1;
                 $$ = tmp;
             }
+            /* ID [EXPR] */
+            /* ID should be Array */
         |   ID '[' EXPR ']'
             {
                 Trace("ID [EXPR]\n");
@@ -576,22 +620,23 @@ EXPR:
                 if (tmp == NULL){
                     yyerror("This ID does not exist !\n");
                 }
+                else{
+                    if (tmp->type != ARRAY_type){
+                        yyerror("ID type must be array !\n");
+                    }
 
-                if (tmp->type != ARRAY_type){
-                    yyerror("ID type must be array !\n");
+                    if ($3->type != INT_type){
+                        yyerror("Sorry, array size must be Integer !\n");
+                    }
+
+                    if ($3->intValue >= tmp->arrLength || $3->intValue < 0){
+                        yyerror("Array size out of range !\n");
+                    }
+
+                    ValueDetail* arr_tmp = new ValueDetail();
+                    arr_tmp = tmp->arr_val[$3->intValue];
+                    $$ = arr_tmp;
                 }
-
-                if ($3->type != INT_type){
-                    yyerror("Sorry, array size must be Integer !\n");
-                }
-
-                if ($3->intValue >= tmp->arrLength || $3->intValue < 0){
-                    yyerror("Array size out of range !\n");
-                }
-
-                ValueDetail* arr_tmp = new ValueDetail();
-                arr_tmp = tmp->arr_val[$3->intValue];
-                $$ = arr_tmp;
             };
 
 /* Constant value type declaration */
@@ -624,6 +669,7 @@ CONST_VAL:
 
 /* Call function */
 FUNC_INVOCATION:
+            /* Call function can be : ID  or  ID(expr,expr,...,expr) */
             ID '(' COMMA_SEPARATED_EXPR ')'
             {
                 IDDetail* tmp = new IDDetail();
@@ -632,38 +678,43 @@ FUNC_INVOCATION:
                 if (tmp == NULL){
                     yyerror("This ID does not exist !\n");
                 }
+                else{
+                    if (tmp->type != FUNC_type){
+                        yyerror("This ID is not a function !\n");
+                    }
 
-                if (tmp->type != FUNC_type){
-                    yyerror("This ID is not a function !\n");
+                    if ($3->size() != tmp->arg_val->size()){
+                        yyerror("Wrong argument size !\n");
+                    }
+
+                    $$ = tmp->returnType;
                 }
-
-                if ($3->size() != tmp->arg_val->size()){
-                    yyerror("Wrong argument size !\n");
-                }
-
-                $$ = tmp->returnType;
             };
 
 /* Muti expression separated by comma */
 COMMA_SEPARATED_EXPR:
+            /* Single EXPR */
             EXPR
             {
                 vector<ValueDetail*>* tmp = new vector<ValueDetail*>();
                 tmp->push_back($1);
                 $$ = tmp;
             }
+            /* Multi EXPR */
         |   EXPR ',' COMMA_SEPARATED_EXPR
             {
                 $3->push_back($1);
                 $$ = $3;
             }
         |
+            /* empty entry */
             {
                 $$ = new vector<ValueDetail*>();
             };
 
 /* Block_statement declaration */
 STMT_BLOCK:
+            /* { block entry } */
             '{' 
             {
                 my_tables.push();
@@ -687,6 +738,7 @@ STMT_CONDITIONAL:
 
 /* Condition_if declaration */
 IF_COND:
+            /* if_condition can be :  IF (EXPR)  or  IF(EXPR) ELSE */
             IF '(' EXPR ')'
             {
                 Trace("IF ( EXPR )\n");
@@ -700,7 +752,9 @@ ELSE_COND:
 
 /* Statement's scope contents */
 STMT_SCOPE:
+            /* Just a simple_statement */
             STMT_SIMPLE
+            /* a block with multi statements */
         |   STMT_BLOCK;
 
 /* Loop_statements declaration */
@@ -710,6 +764,7 @@ STMT_LOOP:
 
 /* Loop_while delcaration */
 WHILE_LOOP:
+            /* while (EXPR) */
             WHILE '(' EXPR ')' 
             {
                 Trace("WHILE ( EXPR )\n");
@@ -720,6 +775,7 @@ WHILE_LOOP:
 
 /* Loop_for declaration */
 FOR_LOOP:
+            /* for (ID <- int to int) */
             FOR '(' ID LT '-' INT_VAL TO INT_VAL ')' 
             {
                 Trace("FOR ( ID < - INT TO INT )\n");
@@ -733,10 +789,12 @@ FOR_LOOP:
 
 /* Method's return rule declaration */
 METH_RETURN:
+            /* Only return */
             RETURN
+            /* return with an expression */
         |   RETURN EXPR
-        |
-        ;
+            /* empty */
+        |;
 
 
 
@@ -767,6 +825,5 @@ int main(int argc, char **argv)
     if (yyparse() == 1)                 /* parsing */
         yyerror("Parsing error !");     /* syntax error */
 
-    /* Dump symboltable list */
-    my_tables.dump();
+    cout << endl << endl << "===========PARSING COMPLETE===========" << endl << endl << endl;
 }
