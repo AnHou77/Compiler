@@ -10,4 +10,5 @@ y.tab.cpp: parser.y
 	yacc -d parser.y -o y.tab.cpp
 
 clean:
-	rm parser lex.yy.* y.tab.*
+	-rm parser 
+	-rm lex.yy.* y.tab.*

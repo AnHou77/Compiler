@@ -80,19 +80,21 @@ public:
     int first;
 
     void push();
-    bool pop();
+    void pop();
 
     IDDetail *lookup(string);
 
     void dump();
 };
 
+/* set up */
 ValueDetail *INTconst(int);
 ValueDetail *FLOATconst(float);
 ValueDetail *CHARconst(char);
 ValueDetail *STRINGconst(string*);
 ValueDetail *BOOLconst(bool);
 
+/* overloaded */
 ValueDetail* operator + (ValueDetail&, const ValueDetail&);
 ValueDetail* operator - (ValueDetail&, const ValueDetail&);
 ValueDetail* operator * (ValueDetail&, const ValueDetail&);
@@ -104,6 +106,7 @@ ValueDetail* operator <= (ValueDetail&, const ValueDetail&);
 ValueDetail* operator == (ValueDetail&, const ValueDetail&);
 ValueDetail* operator != (ValueDetail&, const ValueDetail&);
 
+/* for dump */
 string getIDTypeStr(IDType);
 string getVALTypeStr(ValueType);
 

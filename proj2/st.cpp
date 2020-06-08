@@ -8,21 +8,26 @@ bool SymbolTable::checkIsExist(string name){
     return false;
 }
 
+/* overloaded insert function for arguments(id_name,id_type) */
 int SymbolTable::insert(string name, IDType id_type){
     if (checkIsExist(name)) {
         return -1;
     }
+    // initial ID
     IDDetail *tmp = new IDDetail;
     tmp->type = id_type;
     tmp->name = name;
+    tmp->val = NULL;
     table[name] = tmp;
     return 1;
 }
 
+/* overloaded insert function for arguments(id_name,id_type,id_value) */
 int SymbolTable::insert(string name, IDType id_type, ValueDetail *val){
     if (checkIsExist(name)) {
         return -1;
     }
+    // initial ID
     IDDetail *tmp = new IDDetail;
     tmp->type = id_type;
     tmp->name = name;
@@ -32,22 +37,27 @@ int SymbolTable::insert(string name, IDType id_type, ValueDetail *val){
     return 1;
 }
 
+/* overloaded insert function for arguments(id_name,id_type,value_type) */
 int SymbolTable::insert(string name, IDType id_type, ValueType val_type){
     if (checkIsExist(name)) {
         return -1;
     }
+    // initial ID
     IDDetail *tmp = new IDDetail;
     tmp->type = id_type;
     tmp->name = name;
+    tmp->val = new ValueDetail();
     tmp->val->type = val_type;
     table[name] = tmp;
     return 1;
 }
 
+/* overloaded insert function for arguments(id_name,id_type,array_type,array_size) */
 int SymbolTable::insert(string name, IDType id_type, ValueType arr_type, int size){
     if (checkIsExist(name)) {
         return -1;
     }
+    // initial ID
     IDDetail *tmp = new IDDetail;
     tmp->type = id_type;
     tmp->name = name;
@@ -63,6 +73,7 @@ int SymbolTable::insert(string name, IDType id_type, ValueType arr_type, int siz
     return 1;
 }
 
+/* if ID can be found, return it */
 IDDetail* SymbolTable::lookup(string name){
     if (checkIsExist(name)){
         return table[name];
@@ -70,34 +81,33 @@ IDDetail* SymbolTable::lookup(string name){
     return NULL;
 }
 
+/* Dump all ID's infomations */
 void SymbolTable::dump(){
     if (!table.empty()){
         for (map<string, IDDetail *>::iterator iter = table.begin(); iter != table.end(); iter++)
         {
-            cout << "ID: " << iter->first << "\tType: " << getIDTypeStr(iter->second->type);
+            cout << "ID: " << iter->first << "\t Type: " << getIDTypeStr(iter->second->type);
             if (iter->second->type == CONST_type || iter->second->type == VAR_type){
                 cout << "\t ValueType:" << getVALTypeStr(iter->second->val->type);
             }
             cout << endl;
         }
-        cout << "------------------------------------------------" << endl;
     }
 }
 
+/* push new table to list */
 void SymbolTableS::push(){
     table_vec.push_back(SymbolTable());
-    ++first;
+    first++;
 }
 
-bool SymbolTableS::pop(){
-    if (table_vec.size() == 0){
-        return false;
-    }
+/* pop top one table */
+void SymbolTableS::pop(){
     table_vec.pop_back();
-    --first;
-    return true;
+    first--;
 }
 
+/* if ID can be found, return it */
 IDDetail* SymbolTableS::lookup(string name){
     for (int i = 0; i <= first ; i++){
         IDDetail *tmp = table_vec[i].lookup(name);
@@ -112,43 +122,48 @@ void SymbolTableS::dump(){
     if(first >= 0){
         cout << "=================Symbol Tables=================" << endl;
         for (int i = 0; i <= first; i++){
-            cout << "---------------------------------(" << i << ")" << endl;
             table_vec[i].dump();
         }
+        cout << "===============================================" << endl;
     }
 }
 
+/* initial an integer value */
 ValueDetail *INTconst(int val){
     ValueDetail *tmp = new ValueDetail();
     tmp->type = INT_type;
     tmp->intValue = val;
     return tmp;
 }
+/* initial an float value */
 ValueDetail *FLOATconst(float val){
     ValueDetail *tmp = new ValueDetail();
     tmp->type = FLOAT_type;
     tmp->floatValue = val;
     return tmp;
 }
+/* initial an char value */
 ValueDetail *CHARconst(char val){
     ValueDetail *tmp = new ValueDetail();
     tmp->type = CHAR_type;
     tmp->charValue = val;
     return tmp;
 }
+/* initial an string value */
 ValueDetail *STRINGconst(string* val){
     ValueDetail *tmp = new ValueDetail();
     tmp->type = STRING_type;
     tmp->stringValue = val;
     return tmp;
 }
+/* initial an boolean value */
 ValueDetail *BOOLconst(bool val){
     ValueDetail *tmp = new ValueDetail();
     tmp->type = BOOL_type;
     tmp->boolValue = val;
     return tmp;
 }
-
+/* overloaded operator + to caculate ValueDetail type */
 ValueDetail* operator + (ValueDetail& left, const ValueDetail& right){
     ValueDetail* tmp = new ValueDetail();
     tmp->type = left.type;
@@ -160,7 +175,7 @@ ValueDetail* operator + (ValueDetail& left, const ValueDetail& right){
     }
     return tmp;
 }
-
+/* overloaded operator - to caculate ValueDetail type */
 ValueDetail* operator - (ValueDetail& left, const ValueDetail& right){
     ValueDetail* tmp = new ValueDetail();
     tmp->type = left.type;
@@ -172,7 +187,7 @@ ValueDetail* operator - (ValueDetail& left, const ValueDetail& right){
     }
     return tmp;
 }
-
+/* overloaded operator * to caculate ValueDetail type */
 ValueDetail* operator * (ValueDetail& left, const ValueDetail& right){
     ValueDetail* tmp = new ValueDetail();
     tmp->type = left.type;
@@ -184,7 +199,7 @@ ValueDetail* operator * (ValueDetail& left, const ValueDetail& right){
     }
     return tmp;
 }
-
+/* overloaded operator / to caculate ValueDetail type */
 ValueDetail* operator / (ValueDetail& left, const ValueDetail& right){
     ValueDetail* tmp = new ValueDetail();
     tmp->type = left.type;
@@ -196,7 +211,7 @@ ValueDetail* operator / (ValueDetail& left, const ValueDetail& right){
     }
     return tmp;
 }
-
+/* overloaded operator > to compare ValueDetail type */
 ValueDetail* operator > (ValueDetail& left, const ValueDetail& right){
     ValueDetail* tmp = new ValueDetail();
     tmp->type = BOOL_type;
@@ -218,7 +233,7 @@ ValueDetail* operator > (ValueDetail& left, const ValueDetail& right){
     }
     return tmp;
 }
-
+/* overloaded operator < to compare ValueDetail type */
 ValueDetail* operator < (ValueDetail& left, const ValueDetail& right){
     ValueDetail* tmp = new ValueDetail();
     tmp->type = BOOL_type;
@@ -240,7 +255,7 @@ ValueDetail* operator < (ValueDetail& left, const ValueDetail& right){
     }
     return tmp;
 }
-
+/* overloaded operator >= to compare ValueDetail type */
 ValueDetail* operator >= (ValueDetail& left, const ValueDetail& right){
     ValueDetail* tmp = new ValueDetail();
     tmp->type = BOOL_type;
@@ -262,7 +277,7 @@ ValueDetail* operator >= (ValueDetail& left, const ValueDetail& right){
     }
     return tmp;
 }
-
+/* overloaded operator <= to compare ValueDetail type */
 ValueDetail* operator <= (ValueDetail& left, const ValueDetail& right){
     ValueDetail* tmp = new ValueDetail();
     tmp->type = BOOL_type;
@@ -284,7 +299,7 @@ ValueDetail* operator <= (ValueDetail& left, const ValueDetail& right){
     }
     return tmp;
 }
-
+/* overloaded operator == to compare ValueDetail type */
 ValueDetail* operator == (ValueDetail& left, const ValueDetail& right){
     ValueDetail* tmp = new ValueDetail();
     tmp->type = BOOL_type;
@@ -330,7 +345,7 @@ ValueDetail* operator == (ValueDetail& left, const ValueDetail& right){
     }
     return tmp;
 }
-
+/* overloaded operator != to compare ValueDetail type */
 ValueDetail* operator != (ValueDetail& left, const ValueDetail& right){
     ValueDetail* tmp = new ValueDetail();
     tmp->type = BOOL_type;
@@ -377,6 +392,7 @@ ValueDetail* operator != (ValueDetail& left, const ValueDetail& right){
     return tmp;
 }
 
+/* Just for dump */
 string getIDTypeStr(IDType type){
     switch (type)
     {
@@ -394,6 +410,8 @@ string getIDTypeStr(IDType type){
         return "Undefined_Type_ID";
     }
 }
+
+/* Just for dump */
 string getVALTypeStr(ValueType type){
     switch (type)
     {

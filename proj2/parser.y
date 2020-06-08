@@ -1,17 +1,19 @@
 %{
 
-#define Trace(t)        cout<<t;
+#define Trace(t)        cout << t;
+#define isExist         -1
 
 #include "st.h"
 #include "lex.yy.cpp"
 
 void yyerror(string msg);
 
+/* Create a symboltable list */
 SymbolTableS my_tables;
 
-#define isExist         -1
 %}
 
+/* defined yylval */
 %union{
     int ival;
     float fval;
@@ -24,6 +26,7 @@ SymbolTableS my_tables;
     vector<ValueDetail*> *args;
 }
 
+/* start from */
 %start program
 
 /* tokens */
@@ -39,10 +42,12 @@ SymbolTableS my_tables;
 %token <cval> CHAR_VAL
 %token <sval> STRING_VAL ID
 
+/* define type token  */
 %type <type> VAL_TYPE TYPE_OPT FUNC_INVOCATION
 %type <arg> FORMAL_ARG EXPR CONST_VAL
 %type <args> FORMAL_ARGS COMMA_SEPARATED_EXPR
 
+/* operater's priority */
 %left OR
 %left AND
 %left NOT
@@ -53,42 +58,50 @@ SymbolTableS my_tables;
 
 %%
 
+/* Program */
 program:        
+            /* Start with <object id_name> */
+            /* Push a symboltable when entering a scope, and pop it after exiting the scope */
             OBJECT ID
             {
                 my_tables.push();
-                cout<<my_tables.table_vec.size()<<endl<<my_tables.first<<endl;
                 int ID_idx = my_tables.table_vec[my_tables.first].insert(*$2, OBJECT_type);
                 if (ID_idx == isExist){
                     yyerror(*$2 + ": already exists !");
                 }
                 Trace("OBJECT ID\n");
-                my_tables.push();
-            } '{' PRO_BLOCK_CONTENT '}'
+            } '{' PRO_BLOCK_CONTENT_BASE '}'
             {
                 my_tables.dump();
                 my_tables.pop();
                 Trace("{ Reducing to program }\n");
             };
+/* At least one method */
+PRO_BLOCK_CONTENT_BASE:
+            METHOD PRO_BLOCK_CONTENT;
+
+/* Program's block contents */
 PRO_BLOCK_CONTENT:
             VAR_VAL_DEC PRO_BLOCK_CONTENT
         |   METHOD PRO_BLOCK_CONTENT
         |
         ;
 
+/* Constant or variable or array declaration */
 VAR_VAL_DEC:
             CONSTANT_DEC
         |   VARIABLE_DEC
         |   ARRAY_DEC;
 
+/* Constant declaration */
 CONSTANT_DEC:  
             VAL ID '=' EXPR
             {
+                Trace("VAL ID = EXPR\n");
                 int ID_idx = my_tables.table_vec[my_tables.first].insert(*$2, CONST_type, $4);
                 if (ID_idx == isExist){
                     yyerror(*$2 + ": already exists !");
                 }
-                Trace("VAL ID = EXPR\n");
             }
         |   VAL ID ':' VAL_TYPE '=' EXPR
             {
@@ -102,10 +115,11 @@ CONSTANT_DEC:
                 Trace("VAL ID : VAL_TYPE = EXPR\n");
             };
 
+/* Variable declaration */
 VARIABLE_DEC:
             VAR ID ':' VAL_TYPE
             {
-                int ID_idx = my_tables.table_vec[my_tables.first].insert(*$2, CONST_type, $4);
+                int ID_idx = my_tables.table_vec[my_tables.first].insert(*$2, VAR_type, $4);
                 if (ID_idx == isExist){
                     yyerror(*$2 + ": already exists !");
                 }
@@ -113,7 +127,7 @@ VARIABLE_DEC:
             }
         |   VAR ID '=' EXPR
             {
-                int ID_idx = my_tables.table_vec[my_tables.first].insert(*$2, CONST_type, $4);
+                int ID_idx = my_tables.table_vec[my_tables.first].insert(*$2, VAR_type, $4);
                 if (ID_idx == isExist){
                     yyerror(*$2 + ": already exists !");
                 }
@@ -124,7 +138,7 @@ VARIABLE_DEC:
                 if ($4 != $6->type){
                     yyerror("Error assignment: Type different !");
                 }
-                int ID_idx = my_tables.table_vec[my_tables.first].insert(*$2, CONST_type, $6);
+                int ID_idx = my_tables.table_vec[my_tables.first].insert(*$2, VAR_type, $6);
                 if (ID_idx == isExist){
                     yyerror(*$2 + ": already exists !");
                 }
@@ -132,13 +146,14 @@ VARIABLE_DEC:
             }
         |   VAR ID
             {
-                int ID_idx = my_tables.table_vec[my_tables.first].insert(*$2, CONST_type, VAL_UNDEF_type);
+                int ID_idx = my_tables.table_vec[my_tables.first].insert(*$2, VAR_type, VAL_UNDEF_type);
                 if (ID_idx == isExist){
                     yyerror(*$2 + ": already exists !");
                 }
                 Trace("VAR ID\n");
             };
 
+/* Array declaration */
 ARRAY_DEC:
             VAR ID ':' VAL_TYPE '[' INT_VAL ']'
             {
@@ -149,37 +164,44 @@ ARRAY_DEC:
                 Trace("VAL ID : VAL_TYPE [ INT_VAL ]\n");
             };
 
+/* Method declaration */
 METHOD:
-            DEF ID '(' FORMAL_ARGS ')' TYPE_OPT 
+            DEF ID 
             {
+                Trace("DEF ID ( ARGS ) <:TYPE> {METHOD}");
                 int ID_idx = my_tables.table_vec[my_tables.first].insert(*$2, FUNC_type);
                 if (ID_idx == isExist){
                     yyerror(*$2 + ": already exists !");
                 }
-
+            } '(' FORMAL_ARGS ')' TYPE_OPT 
+            {
                 IDDetail *tmp = my_tables.lookup(*$2);
 
-                tmp->arg_val = $4;
+                tmp->arg_val = $5;
 
-                if($6 != VAL_UNDEF_type){
-                    tmp->returnType = $6;
+                if($7 != VAL_UNDEF_type){
+                    tmp->returnType = $7;
                 }
                 my_tables.push();
             } '{' METH_BLOCK_CONTENT '}'
             {
+                Trace("In Function Block\n")
                 my_tables.dump();
                 my_tables.pop();
             };
 
+/* Arguments declaration */
 FORMAL_ARGS:
             FORMAL_ARG
             {
+                Trace("FORMAL_ARG\n");
                 vector<ValueDetail*>* tmp = new vector<ValueDetail*>();
                 tmp->push_back($1);
                 $$ = tmp;
             }
         |   FORMAL_ARG ',' FORMAL_ARGS
             {  
+                Trace("FORMAL_ARG, FORMAL_ARGS\n");
                 $3->push_back($1);
                 $$ = $3;
             }
@@ -189,23 +211,28 @@ FORMAL_ARGS:
             }
         ;
 
+/* Argument declaration */
 FORMAL_ARG:
             ID ':' VAL_TYPE
             {
+                Trace("ID : VAL_TYPE\n");
                 int ID_idx = my_tables.table_vec[my_tables.first].insert(*$1, VAR_type, $3);
                 if (ID_idx == isExist){
                     yyerror(*$1 + ": already exists !");
                 }
-                ValueDetail* tmp;
+                ValueDetail* tmp = new ValueDetail();
                 tmp->arg_name = *$1;
+                cout<< tmp->arg_name<<endl;
                 tmp->type = $3;
 
                 $$ = tmp;
             };
 
+/* Function has returntype is optional */
 TYPE_OPT:
             ':' VAL_TYPE
             {
+                Trace("<: VAL_TYPE>\n");
                 $$ = $2;
             }
         |
@@ -214,6 +241,7 @@ TYPE_OPT:
             }
         ;
 
+/* Value type declaration */
 VAL_TYPE:
             INT
             {
@@ -236,14 +264,17 @@ VAL_TYPE:
                 $$ = BOOL_type;
             };
 
+/* Method's block contents */
 METH_BLOCK_CONTENT: 
             VAR_VAL_DEC METH_BLOCK_CONTENT
         |   STMTS METH_BLOCK_CONTENT
         |   METH_RETURN;
 
+/* Statements declaration */
 STMTS:      STMT
         |   STMT STMTS;
 
+/* Statement declaration */
 STMT:
             STMT_SIMPLE
         |   STMT_BLOCK
@@ -252,9 +283,11 @@ STMT:
         |   FUNC_INVOCATION
         ;
 
+/* simple statement declaration */
 STMT_SIMPLE:
             ID '=' EXPR
             {
+                Trace("STMT(ID = EXPR)\n");
                 IDDetail* tmp = new IDDetail();
                 tmp = my_tables.lookup(*$1);
                 
@@ -281,6 +314,7 @@ STMT_SIMPLE:
             }
         |   ID '[' EXPR ']' '=' EXPR
             {
+                Trace("STMT(ID [EXPR] = EXPR)\n");
                 IDDetail* tmp = new IDDetail();
                 tmp = my_tables.lookup(*$1);
 
@@ -301,8 +335,8 @@ STMT_SIMPLE:
                 }
                 *(tmp->arr_val[$3->intValue]) = *$6;
             }
-        |   PRINT '(' EXPR ')'
-        |   PRINTLN '(' EXPR ')'
+        |   PRINT EXPR 
+        |   PRINTLN EXPR
         |   READ ID
             {
                 IDDetail* tmp = new IDDetail();
@@ -317,9 +351,11 @@ STMT_SIMPLE:
         |   EXPR
         |   FUNC_INVOCATION;
 
+/* Expression declaration */
 EXPR:
             '-' EXPR %prec UMINUS
             {
+                Trace("-EXPR\n");
                 if($2->type == INT_type){
                     $2->intValue *= -1;
                     $$ = $2;
@@ -334,6 +370,7 @@ EXPR:
             }
         |   EXPR '*' EXPR
             {
+                Trace("EXPR * EXPR\n");
                 if($1->type != $3->type){
                     yyerror("Sorry, different type can't be caculated !\n");
                 }
@@ -346,6 +383,7 @@ EXPR:
             }
         |   EXPR '/' EXPR
             {
+                Trace("EXPR / EXPR\n");
                 if($1->type != $3->type){
                     yyerror("Sorry, different type can't be caculated !\n");
                 }
@@ -358,6 +396,7 @@ EXPR:
             }
         |   EXPR '+' EXPR
             {
+                Trace("EXPR + EXPR\n");
                 if($1->type != $3->type){
                     yyerror("Sorry, different type can't be caculated !\n");
                 }
@@ -370,6 +409,7 @@ EXPR:
             }
         |   EXPR '-' EXPR
             {
+                Trace("EXPR - EXPR\n");
                 if($1->type != $3->type){
                     yyerror("Sorry, different type can't be caculated !\n");
                 }
@@ -382,6 +422,7 @@ EXPR:
             }
         |   EXPR LT EXPR
             {
+                Trace("EXPR < EXPR\n");
                 if($1->type != $3->type){
                     yyerror("Sorry, different type can't be compared !\n");
                 }
@@ -394,6 +435,7 @@ EXPR:
             }
         |   EXPR LE EXPR
             {
+                Trace("EXPR <= EXPR\n");
                 if($1->type != $3->type){
                     yyerror("Sorry, different type can't be compared !\n");
                 }
@@ -406,6 +448,7 @@ EXPR:
             }
         |   EXPR EE EXPR
             {
+                Trace("EXPR == EXPR\n");
                 if($1->type != $3->type){
                     yyerror("Sorry, different type can't be compared !\n");
                 }
@@ -416,6 +459,7 @@ EXPR:
             }
         |   EXPR GE EXPR
             {
+                Trace("EXPR >= EXPR\n");
                 if($1->type != $3->type){
                     yyerror("Sorry, different type can't be compared !\n");
                 }
@@ -428,6 +472,7 @@ EXPR:
             }
         |   EXPR GT EXPR
             {
+                Trace("EXPR > EXPR\n");
                 if($1->type != $3->type){
                     yyerror("Sorry, different type can't be compared !\n");
                 }
@@ -440,6 +485,7 @@ EXPR:
             }
         |   EXPR NE EXPR
             {
+                Trace("EXPR != EXPR\n");
                 if($1->type != $3->type){
                     yyerror("Sorry, different type can't be compared !\n");
                 }
@@ -450,6 +496,7 @@ EXPR:
             }
         |   NOT EXPR
             {
+                Trace("! EXPR\n");
                 ValueDetail* tmp = new ValueDetail();
                 tmp->type = BOOL_type;
                 if ($2->type != BOOL_type){
@@ -464,6 +511,7 @@ EXPR:
             }
         |   EXPR AND EXPR
             {
+                Trace("EXPR && EXPR\n");
                 ValueDetail* tmp = new ValueDetail();
                 tmp->type = BOOL_type;
                 if($1->type != $3->type){
@@ -477,6 +525,7 @@ EXPR:
             }
         |   EXPR OR EXPR
             {
+                Trace("EXPR || EXPR\n");
                 ValueDetail* tmp = new ValueDetail();
                 tmp->type = BOOL_type;
                 if($1->type != $3->type){
@@ -488,12 +537,20 @@ EXPR:
                 tmp->boolValue = ($1->boolValue || $3->boolValue);
                 $$ = tmp;
             }
+        |   '(' EXPR ')'
+            {
+                Trace("( EXPR )\n");
+                $$ = $2;
+            }
         |   CONST_VAL
             {
+                Trace("EXPR(Const_value)\n");
+                cout<< "---INT---"<<endl;
                 $$ = $1;
             }
         |   ID
             {
+                Trace("EXPR(ID)\n");
                 IDDetail* tmp = my_tables.lookup(*$1);
                 if (tmp == NULL){
                     yyerror("This ID does not exist !\n");
@@ -507,12 +564,14 @@ EXPR:
             }
         |   FUNC_INVOCATION
             {
+                Trace("FUNCTION_CALL")
                 ValueDetail* tmp = new ValueDetail();
                 tmp->type = $1;
                 $$ = tmp;
             }
         |   ID '[' EXPR ']'
             {
+                Trace("ID [EXPR]\n");
                 IDDetail* tmp = my_tables.lookup(*$1);
                 if (tmp == NULL){
                     yyerror("This ID does not exist !\n");
@@ -535,28 +594,35 @@ EXPR:
                 $$ = arr_tmp;
             };
 
+/* Constant value type declaration */
 CONST_VAL:
             INT_VAL
             {
+                Trace("Get Integer\n");
                 $$ = INTconst($1);
             }
         |   FLOAT_VAL
             {
+                Trace("Get Float\n");
                 $$ = FLOATconst($1);
             }
         |   BOOL_VAL
             {
+                Trace("Get Boolean\n");
                 $$ = BOOLconst($1);
             }
         |   CHAR_VAL
             {
+                Trace("Get Char\n");
                 $$ = CHARconst($1);
             }
         |   STRING_VAL
             {
+                Trace("Get String\n");
                 $$ = STRINGconst($1);
             };
 
+/* Call function */
 FUNC_INVOCATION:
             ID '(' COMMA_SEPARATED_EXPR ')'
             {
@@ -578,6 +644,7 @@ FUNC_INVOCATION:
                 $$ = tmp->returnType;
             };
 
+/* Muti expression separated by comma */
 COMMA_SEPARATED_EXPR:
             EXPR
             {
@@ -595,50 +662,67 @@ COMMA_SEPARATED_EXPR:
                 $$ = new vector<ValueDetail*>();
             };
 
+/* Block_statement declaration */
 STMT_BLOCK:
             '{' 
             {
                 my_tables.push();
-            } VAR_VAL_DEC STMTS '}'
+            } STMT_BLOCK_CONTENTS '}'
             {   
+                Trace("Reducing Block\n");
                 my_tables.dump();
                 my_tables.pop();
             };
 
+/* block_statement's contents */
+STMT_BLOCK_CONTENTS:
+            VAR_VAL_DEC STMT_BLOCK_CONTENTS
+        |   STMTS STMT_BLOCK_CONTENTS
+        |;
+
+/* Conditional statements declaration */
 STMT_CONDITIONAL:
             IF_COND
         |   IF_COND ELSE_COND;
 
+/* Condition_if declaration */
 IF_COND:
             IF '(' EXPR ')'
             {
+                Trace("IF ( EXPR )\n");
                 if ($3->type != BOOL_type){
                     yyerror("Conditional expression must be Boolean !\n");
                 }
             } STMT_SCOPE;
-
+/* Condition_else declaration */
 ELSE_COND:
             ELSE STMT_SCOPE;
 
+/* Statement's scope contents */
 STMT_SCOPE:
             STMT_SIMPLE
         |   STMT_BLOCK;
 
+/* Loop_statements declaration */
 STMT_LOOP:
             WHILE_LOOP
         |   FOR_LOOP;
 
+/* Loop_while delcaration */
 WHILE_LOOP:
             WHILE '(' EXPR ')' 
             {
+                Trace("WHILE ( EXPR )\n");
                 if ($3->type != BOOL_type){
                     yyerror("Conditional expression must be Boolean !\n");
                 }
             } STMT_SCOPE;
 
+/* Loop_for declaration */
 FOR_LOOP:
             FOR '(' ID LT '-' INT_VAL TO INT_VAL ')' 
             {
+                Trace("FOR ( ID < - INT TO INT )\n");
                 IDDetail* tmp = new IDDetail();
                 tmp = my_tables.lookup(*$3);
                 if(tmp->type != VAR_type){
@@ -647,6 +731,7 @@ FOR_LOOP:
             }
             STMT_SCOPE;
 
+/* Method's return rule declaration */
 METH_RETURN:
             RETURN
         |   RETURN EXPR
@@ -665,11 +750,13 @@ void yyerror(string msg)
 
 int main(int argc, char **argv)
 {
-    /* open the source program file */
+    
     if (argc == 1){
+        /* user input */
         yyin = stdin;
     }
     else if (argc == 2) {
+        /* open the source program file */
         yyin = fopen(argv[1],"r");
     }
     else {
@@ -680,5 +767,6 @@ int main(int argc, char **argv)
     if (yyparse() == 1)                 /* parsing */
         yyerror("Parsing error !");     /* syntax error */
 
+    /* Dump symboltable list */
     my_tables.dump();
 }
