@@ -28,8 +28,6 @@ bool elifFLAG = false;
 vector<vector<int>> ifLabelStack;
 
 vector<vector<int>> whileLabelStack;
-
-vector<vector<int>> forLabelStack;
 %}
 
 /* defined yylval */
@@ -156,7 +154,7 @@ VARIABLE_DEC:
                 IDDetail *tmp = my_tables.lookup(*$2);
 
                 if (my_tables.first == isGLOBAL){
-                    javafile << "\t\tfield static int " << *$2 << endl;
+                    javafile << "\tfield static int " << *$2 << endl;
                 }
                 else{
                     javafile << "\t\tsipush " << 0 << endl;
@@ -175,8 +173,8 @@ VARIABLE_DEC:
                 IDDetail *tmp = my_tables.lookup(*$2);
 
                 if (my_tables.first == isGLOBAL){
-                    javafile << "\t\tfield static int " << *$2 << endl;
-                    javafile << "\t\tputstatic int " << classID << "." << *$2 << endl;
+                    javafile << "\tfield static int " << *$2 << endl;
+                    //javafile << "\tputstatic int " << classID << "." << *$2 << endl;
                 }
                 else{
                     tmp->stackidx = varStackidx;
@@ -197,8 +195,8 @@ VARIABLE_DEC:
                 IDDetail *tmp = my_tables.lookup(*$2);
 
                 if (my_tables.first == isGLOBAL){
-                    javafile << "\t\tfield static int " << *$2 << endl;
-                    javafile << "\t\tputstatic int " << classID << "." << *$2 << endl;
+                    javafile << "\tfield static int " << *$2 << endl;
+                    //javafile << "\tputstatic int " << classID << "." << *$2 << endl;
                 }
                 else{
                     tmp->stackidx = varStackidx;
@@ -216,7 +214,7 @@ VARIABLE_DEC:
                 IDDetail *tmp = my_tables.lookup(*$2);
 
                 if (my_tables.first == isGLOBAL){
-                    javafile << "\t\tfield static int " << *$2 << endl;
+                    javafile << "\tfield static int " << *$2 << endl;
                 }
                 else{
                     javafile << "\t\tsipush " << 0 << endl;
@@ -792,7 +790,7 @@ EXPR:
                     else{
                         $$ = tmp->val;
                         int buf;
-
+                    
                         if (tmp->type == CONST_type){
                             if (tmp->val->type == INT_type){
                                 buf = tmp->val->intValue;
@@ -808,7 +806,7 @@ EXPR:
                                 javafile << "\t\tsipush " << buf << endl;
                             }
                             else if (tmp->val->type == STRING_type){
-                                javafile << "\t\tldc" << *(tmp->val->stringValue) << endl;
+                                javafile << "\t\tldc \"" << *(tmp->val->stringValue) << "\"" << endl;
                             }
                         }
                         else{
@@ -864,7 +862,10 @@ CONST_VAL:
             {
                 Trace("Get Integer\n");
                 $$ = INTconst($1);
-                javafile << "\t\tsipush " << $1 << endl;
+                if (my_tables.first != isGLOBAL){
+                    javafile << "\t\tsipush " << $1 << endl;
+                }
+                //javafile << "\t\tsipush " << $1 << endl;
             }
         |   FLOAT_VAL
             {
@@ -875,11 +876,13 @@ CONST_VAL:
             {
                 Trace("Get Boolean\n");
                 $$ = BOOLconst($1);
-                if ($1){
-                    javafile << "\t\tsipush " << 1 << endl;
-                }
-                else{
-                    javafile << "\t\tsipush " << 0 << endl;
+                if (my_tables.first != isGLOBAL){
+                    if ($1){
+                        javafile << "\t\tsipush " << 1 << endl;
+                    }
+                    else{
+                        javafile << "\t\tsipush " << 0 << endl;
+                    }   
                 }
             }
         |   CHAR_VAL
@@ -891,7 +894,10 @@ CONST_VAL:
             {
                 Trace("Get String\n");
                 $$ = STRINGconst($1);
-                javafile << "\t\tldc " << *$1 << endl;
+                if (my_tables.first != isGLOBAL){
+                    javafile << "\t\tldc \"" << *$1 << "\"" << endl;
+                }
+                //javafile << "\t\tldc \"" << *$1 << "\"" << endl;
             };
 
 /* Call function */

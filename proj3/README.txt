@@ -1,9 +1,7 @@
-My Scanner change:
+My Parser change:
 
-1. Use C++ instead C.
-2. Add return in token(t), return yytext to parser.
-3. Operator token divided into single bit and muti bit
-    , return to parser can parse easier.
-4. All tokens that need to be passed to the parser are passed with yylval.
-5. Define char type token.
-6. For checking parser easily, define "DEBUG" to control cout.
+1. 創一個jasm檔存產生的 java-bytecode
+2. 於 Rule 中產生對應的 bytecode
+3. 新增判斷 Global variable 的 Flag
+4. 新增兩個 Stack，以紀錄 IF & WHILE 對應的 Label
+5. st.h & st.cpp 實做數個產生 bytecode 的 function

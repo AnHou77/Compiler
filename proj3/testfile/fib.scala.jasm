@@ -1,19 +1,18 @@
 class fib{
-		sipush 8
-		field static int n
-		putstatic int fib.n
-		sipush 1
-		field static int Fn
-		putstatic int fib.Fn
-		sipush 1
-		field static int FNminus1
-		putstatic int fib.FNminus1
-		field static int temp
+	field static int n
+	field static int Fn
+	field static int FNminus1
+	field static int temp
 	method public static void main(java.lang.String[])
 	max_stack 15
 	max_locals 15
 	{
-		goto L0
+		sipush 8
+		putstatic int fib.n
+		sipush 1
+		putstatic int fib.Fn
+		sipush 1
+		putstatic int fib.FNminus1
 	L0:
 		getstatic int fib.n
 		sipush 2
@@ -25,8 +24,6 @@ class fib{
 		iconst_1
 	L2:
 		ifeq L3
-		goto L4
-	L3:
 		getstatic int fib.Fn
 		putstatic int fib.temp
 		getstatic int fib.Fn
@@ -39,10 +36,10 @@ class fib{
 		sipush 1
 		isub
 		putstatic int fib.n
-		goto Lbegin 0
-	L4
+		goto L0
+	L3:
 		getstatic java.io.PrintStream java.lang.System.out
-		ldc Result of computation: 
+		ldc "Result of computation: "
 		invokevirtual void java.io.PrintStream.print(java.lang.String)
 		getstatic java.io.PrintStream java.lang.System.out
 		getstatic int fib.n

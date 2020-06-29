@@ -1,45 +1,140 @@
 class Sigma{
-		sipush 10
-		field static int sum
-		field static int index
+	field static int n
+	field static int sum
+	field static int index
+	method public static int fib(int)
+	max_stack 15
+	max_locals 15
+	{
+		iload 0
+		sipush 2
+		isub
+		iflt L0
+		iconst_0
+		goto L1
+	L0:
+		iconst_1
+	L1:
+		ifeq L2
+		iload 0
+		ireturn
+		goto L3
+	L2:
+		iload 0
+		sipush 1
+		isub
+		invokestatic int Sigma.fib(int)
+		iload 0
+		sipush 2
+		isub
+		invokestatic int Sigma.fib(int)
+		iadd
+		ireturn
+	L3:
+		return
+	}
+	method public static void myprint(int)
+	max_stack 15
+	max_locals 15
+	{
+		iload 0
+		putstatic int Sigma.sum
+		return
+	}
+	method public static int add(int,int)
+	max_stack 15
+	max_locals 15
+	{
+		iload 0
+		iload 1
+		iadd
+		istore 2
+		iload 2
+		ireturn
+		return
+	}
 	method public static void main(java.lang.String[])
 	max_stack 15
 	max_locals 15
 	{
-		sipush 0
-		putstatic int Sigma.sum
+		sipush 1
+		istore 2
 		sipush 0
 		putstatic int Sigma.index
-		goto L0
-	L0:
-		getstatic int Sigma.index
+		sipush 1
+		istore 0
+		getstatic java.io.PrintStream java.lang.System.out
+		sipush 33
+		invokevirtual void java.io.PrintStream.print(int)
+	L4:
+		iload 0
 		sipush 10
 		isub
-		ifle L1
+		ifle L5
 		iconst_0
-		goto L2
-	L1:
+		goto L6
+	L5:
 		iconst_1
-	L2:
-		ifeq L3
-		goto L4
-	L3:
-		getstatic int Sigma.sum
-		getstatic int Sigma.index
-		iadd
-		putstatic int Sigma.sum
-		getstatic int Sigma.index
+	L6:
+		ifeq L7
+		getstatic java.io.PrintStream java.lang.System.out
+		ldc "sadasd"
+		invokevirtual void java.io.PrintStream.print(java.lang.String)
+		iload 0
 		sipush 1
 		iadd
-		putstatic int Sigma.index
-		goto Lbegin 0
-	L4
+		istore 0
+		goto L4
+	L7:
 		getstatic java.io.PrintStream java.lang.System.out
-		ldc The sum is 
+		ldc "The sum is"
 		invokevirtual void java.io.PrintStream.print(java.lang.String)
 		getstatic java.io.PrintStream java.lang.System.out
-		getstatic int Sigma.sum
+		iload 2
 		invokevirtual void java.io.PrintStream.println(int)
+		getstatic java.io.PrintStream java.lang.System.out
+		getstatic int Sigma.index
+		invokevirtual void java.io.PrintStream.println(int)
+		sipush 0
+		istore 0
+		iload 0
+		sipush 0
+		isub
+		ifle L8
+		iconst_0
+		goto L9
+	L8:
+		iconst_1
+	L9:
+		ifeq L10
+		getstatic java.io.PrintStream java.lang.System.out
+		ldc "i <= 0"
+		invokevirtual void java.io.PrintStream.println(java.lang.String)
+		iload 2
+		sipush 0
+		isub
+		ifeq L12
+		iconst_0
+		goto L13
+	L12:
+		iconst_1
+	L13:
+		ifeq L14
+		getstatic java.io.PrintStream java.lang.System.out
+		ldc "sum=0"
+		invokevirtual void java.io.PrintStream.println(java.lang.String)
+		goto L15
+	L14:
+		getstatic java.io.PrintStream java.lang.System.out
+		ldc "sum!=0"
+		invokevirtual void java.io.PrintStream.println(java.lang.String)
+	L15:
+		goto L11
+	L10:
+		getstatic java.io.PrintStream java.lang.System.out
+		ldc "i!= 1 or 0 "
+		invokevirtual void java.io.PrintStream.println(java.lang.String)
+	L11:
 		return
 	}
 }

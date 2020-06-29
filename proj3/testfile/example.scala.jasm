@@ -1,6 +1,5 @@
 class example{
-		sipush 5
-		field static int c
+	field static int c
 	method public static int add(int,int)
 	max_stack 15
 	max_locals 15
@@ -40,8 +39,10 @@ class example{
 		invokevirtual void java.io.PrintStream.print(int)
 	L3:
 		getstatic java.io.PrintStream java.lang.System.out
-		ldc Hello World
+		ldc "Hello World"
 		invokevirtual void java.io.PrintStream.println(java.lang.String)
+		getstatic int example.c
+		istore 0
 		return
 	}
 }

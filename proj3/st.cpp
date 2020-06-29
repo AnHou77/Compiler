@@ -592,14 +592,14 @@ void WHILEStart(){
 
     int lb = buf[0];
 
-    javafile << "\t\tgoto L" << lb << endl;
+    //javafile << "\t\tgoto L" << lb << endl;
     javafile << "\tL" << lb << ":" << endl;
 }
 void WHILEBeforeScope(){
     vector<int> tmp;
     
     tmp.push_back(labelCnt++);
-    tmp.push_back(labelCnt++);
+    //tmp.push_back(labelCnt++);
 
     whileLabelStack.push_back(tmp);
 
@@ -607,12 +607,12 @@ void WHILEBeforeScope(){
 
     vector<int> buf = whileLabelStack[top];
 
-    int lb1 = buf[buf.size() - 2];
-    int lb2 = buf[buf.size() - 1];
+    int lb1 = buf[buf.size() - 1];
+    //int lb2 = buf[buf.size() - 1];
 
     javafile << "\t\tifeq L" << lb1 << endl;
-    javafile << "\t\tgoto L" << lb2 << endl;
-    javafile << "\tL" << lb1 << ":" << endl;
+    //javafile << "\t\tgoto L" << lb2 << endl;
+    //javafile << "\tL" << lb1 << ":" << endl;
 }
 
 void WHILEScope(){
@@ -622,7 +622,7 @@ void WHILEScope(){
 
     int lb = buf[0];
     
-    javafile << "\t\tgoto Lbegin " << lb << endl;
+    javafile << "\t\tgoto L" << lb << endl;
 }
 
 void WHILEEnd(){
@@ -632,7 +632,7 @@ void WHILEEnd(){
 
     int lb = buf[buf.size() - 1];
 
-    javafile << "\tL" << lb << endl;
+    javafile << "\tL" << lb << ":" << endl;
 
     whileLabelStack.pop_back();
 }
