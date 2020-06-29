@@ -400,17 +400,17 @@ string getIDTypeStr(IDType type){
     switch (type)
     {
     case CONST_type:
-        return "Constant_ID";
+        return "const";
     case VAR_type:
-        return "Variable_ID";
+        return "variable";
     case ARRAY_type:
-        return "Array_ID";
+        return "array";
     case FUNC_type:
-        return "Function_ID";
+        return "function";
     case OBJECT_type:
-        return "Object_ID";
+        return "object";
     default:
-        return "Undefined_Type_ID";
+        return "undefined";
     }
 }
 
@@ -419,16 +419,220 @@ string getVALTypeStr(ValueType type){
     switch (type)
     {
     case INT_type:
-        return "Integer_Value";
+        return "int";
     case FLOAT_type:
-        return "float_Value";
+        return "float";
     case CHAR_type:
-        return "Char_Value";
+        return "char";
     case STRING_type:
-        return "String_Value";
+        return "java.lang.String";
+    /* Boolean in java bytecode -> int */
     case BOOL_type:
-        return "Boolean_Value";
+        return "int";
     default:
-        return "Undefined_Type_Value";
+        return "undefined";
     }
+}
+
+void genJBOperation(char ops){
+    switch (ops)
+    {
+        case 'n':
+            javafile << "\t\tineg" << endl;
+            break;
+        case '+':
+            javafile << "\t\tiadd" << endl;
+            break;
+        case '-':
+            javafile << "\t\tisub" << endl;
+            break;
+        case '*':
+            javafile << "\t\timul" << endl;
+            break;
+        case '/':
+            javafile << "\t\tidiv" << endl;
+            break;
+        case '&':
+            javafile << "\t\tiand" << endl;
+            break;
+        case '|':
+            javafile << "\t\tior" << endl;
+            break;
+        case '!':
+            javafile << "\t\tldc 1" << endl;
+            javafile << "\t\tixor" << endl;
+            break;
+        default:
+            break;
+    }
+}
+
+void genJBLogicOp(int ops){
+
+    javafile << "\t\tisub" << endl;
+    int lb1 = labelCnt++;
+    cout << "logiclabel++    " << labelCnt <<endl;
+    int lb2 = labelCnt++;
+    cout << "logiclabel++    " << labelCnt <<endl;
+    switch (ops)
+    {
+    case opLT:
+        javafile << "\t\tiflt";
+        break;
+    case opLE:
+        javafile << "\t\tifle";
+        break;
+    case opGT:
+        javafile << "\t\tifgt";
+        break;
+    case opGE:
+        javafile << "\t\tifge";
+        break;
+    case opEE:
+        javafile << "\t\tifeq";
+        break;
+    case opNE:
+        javafile << "\t\tifne";
+        break;
+    default:
+        break;
+    }
+
+    javafile << " L" << lb1 << endl;
+    javafile << "\t\ticonst_0" << endl;
+    javafile << "\t\tgoto L" << lb2 << endl;
+    javafile << "\tL" << lb1 << ":" << endl;
+    javafile << "\t\ticonst_1" << endl;
+    javafile << "\tL" << lb2 << ":" << endl;
+}
+
+void IFStart(){
+    vector<int> buf;
+    ifLabelStack.push_back(buf);
+    int top = ifLabelStack.size() - 1;
+    ifLabelStack[top].push_back(labelCnt++);
+    cout << "label++    " << labelCnt - 1 <<endl;
+    ifLabelStack[top].push_back(labelCnt++);
+    cout << "label++    " << labelCnt - 1 <<endl;
+
+    cout << "top: " << top << endl;
+    buf = ifLabelStack[top];
+    int lb = buf[0];
+    cout << "top content: " << lb << endl;
+    javafile << "\t\tifeq L" << lb << endl;
+}
+
+void ELIFStart(){
+    int top = ifLabelStack.size() - 1;
+    ifLabelStack[top].push_back(labelCnt++);
+    cout << "label++    " << labelCnt - 1 <<endl;
+
+    cout << "top: " << top << endl;
+    vector<int>buf = ifLabelStack[top];
+    int lb = buf[0];
+    cout << "top content: " << lb << endl;
+    javafile << "\t\tifeq L" << lb << endl;
+}
+
+void IFEnd(){
+    int top = ifLabelStack.size() - 1;
+    vector<int> buf = ifLabelStack[top];
+
+    int lb1 = buf[0];
+    if(buf.size() == 2){
+        int lb2 = buf[1];
+        javafile << "\tL" << lb2 << ":" << endl;
+        javafile << "\t\tgoto L" << lb1 << endl;
+    }
+
+    javafile << "\tL" << lb1 << ":" << endl;
+    cout << "IFEND: label1<" << lb1 << ",labe12<" << lb1+1 << endl;
+    ifLabelStack.pop_back();
+}
+
+void ELSEStart(){
+    int top = ifLabelStack.size() - 1;
+    vector<int> buf = ifLabelStack[top];
+
+    int lb = buf[0];
+    javafile << "\tL" << lb << ":" << endl;
+}
+
+void ELSEEnd(){
+    int top = ifLabelStack.size() - 1;
+    vector<int> buf = ifLabelStack[top];
+
+    int lb = buf[buf.size() - 1];
+    buf.pop_back();
+    ifLabelStack[top] = buf;
+    
+    javafile << "\tL" << lb << ":" << endl;
+
+    ifLabelStack.pop_back();
+}
+
+void IFScope(){
+    int top = ifLabelStack.size() - 1;
+    vector<int> buf = ifLabelStack[top];
+
+    int lb = buf[buf.size() - 1];
+    javafile << "\t\tgoto L" << lb << endl;
+}
+
+void WHILEStart(){
+    vector<int> buf;
+    
+    buf.push_back(labelCnt++);
+
+    whileLabelStack.push_back(buf);
+
+    int top = whileLabelStack.size() - 1;
+
+    buf = whileLabelStack[top];
+
+    int lb = buf[0];
+
+    javafile << "\t\tgoto L" << lb << endl;
+    javafile << "\tL" << lb << ":" << endl;
+}
+void WHILEBeforeScope(){
+    vector<int> tmp;
+    
+    tmp.push_back(labelCnt++);
+    tmp.push_back(labelCnt++);
+
+    whileLabelStack.push_back(tmp);
+
+    int top = whileLabelStack.size() - 1;
+
+    vector<int> buf = whileLabelStack[top];
+
+    int lb1 = buf[buf.size() - 2];
+    int lb2 = buf[buf.size() - 1];
+
+    javafile << "\t\tifeq L" << lb1 << endl;
+    javafile << "\t\tgoto L" << lb2 << endl;
+    javafile << "\tL" << lb1 << ":" << endl;
+}
+
+void WHILEScope(){
+    int top = whileLabelStack.size() - 1;
+
+    vector<int> buf = whileLabelStack[top - 1];
+
+    int lb = buf[0];
+    
+    javafile << "\t\tgoto Lbegin " << lb << endl;
+}
+
+void WHILEEnd(){
+    int top = whileLabelStack.size() - 1;
+
+    vector<int> buf = whileLabelStack[top];
+
+    int lb = buf[buf.size() - 1];
+
+    javafile << "\tL" << lb << endl;
+
+    whileLabelStack.pop_back();
 }

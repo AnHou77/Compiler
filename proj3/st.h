@@ -1,8 +1,14 @@
 #include <iostream>
+#include <fstream>
 #include <map>
 #include <string>
 #include <vector>
 using namespace std;
+
+extern ofstream javafile;
+extern int labelCnt;
+extern vector<vector<int>> ifLabelStack;
+extern vector<vector<int>> whileLabelStack;
 
 enum ValueType{
     INT_type,
@@ -47,9 +53,10 @@ struct IDDetail{
 
     ValueType returnType = VAL_UNDEF_type;
 
-    vector<ValueDetail*> *arg_val;
+    vector<ValueDetail*> arg_val;
 
     bool needInit = true;
+    int stackidx = -1;
 };
 
 class SymbolTable{
@@ -109,3 +116,26 @@ ValueDetail* operator != (ValueDetail&, const ValueDetail&);
 string getIDTypeStr(IDType);
 string getVALTypeStr(ValueType);
 
+void genJBOperation(char);
+void genJBLogicOp(int);
+
+enum LogicOp{
+    opLT,
+    opLE,
+    opGT,
+    opGE,
+    opEE,
+    opNE,
+};
+
+void IFStart();
+void ELIFStart();
+void IFEnd();
+void ELSEStart();
+void ELSEEnd();
+void IFScope();
+
+void WHILEStart();
+void WHILEBeforeScope();
+void WHILEScope();
+void WHILEEnd();

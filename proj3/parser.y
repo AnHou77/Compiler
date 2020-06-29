@@ -1,6 +1,6 @@
 %{
 
-#define Trace(t)        cout << t;
+#define Trace(t)        if (DEBUG)  cout << t;
 #define isExist         -1
 
 #include "st.h"
@@ -8,9 +8,28 @@
 
 void yyerror(string msg);
 
+#define DEBUG 0
+#define isGLOBAL 0
+
 /* Create a symboltable list */
 SymbolTableS my_tables;
 
+string fname;
+ofstream javafile;
+
+string classID;
+int varStackidx = 0;
+
+int labelCnt = 0;
+
+bool needRETURN = false;
+
+bool elifFLAG = false;
+vector<vector<int>> ifLabelStack;
+
+vector<vector<int>> whileLabelStack;
+
+vector<vector<int>> forLabelStack;
 %}
 
 /* defined yylval */
@@ -64,6 +83,8 @@ program:
             /* Push a symboltable when entering a scope, and pop it after exiting the scope */
             OBJECT ID
             {
+                classID = *$2;
+                javafile << "class " << classID << "{" << endl;
                 my_tables.push();
                 int ID_idx = my_tables.table_vec[my_tables.first].insert(*$2, OBJECT_type);
                 if (ID_idx == isExist){
@@ -75,6 +96,7 @@ program:
                 my_tables.dump();
                 my_tables.pop();
                 Trace("{ Reducing to program }\n");
+                javafile << "}" << endl;
             };
 /* Program's block should have at least one method
 PRO_BLOCK_CONTENT_BASE:
@@ -102,6 +124,9 @@ CONSTANT_DEC:
                 if (ID_idx == isExist){
                     yyerror(*$2 + ": already exists !");
                 }
+
+                IDDetail* tmp = my_tables.lookup(*$2);
+                tmp->val = $4;
             }
         |   VAL ID ':' VAL_TYPE '=' EXPR
             {
@@ -113,6 +138,9 @@ CONSTANT_DEC:
                     yyerror(*$2 + ": already exists !");
                 }
                 Trace("VAL ID : VAL_TYPE = EXPR\n");
+
+                IDDetail* tmp = my_tables.lookup(*$2);
+                tmp->val = $6;
             };
 
 /* Variable declaration */
@@ -124,6 +152,17 @@ VARIABLE_DEC:
                     yyerror(*$2 + ": already exists !");
                 }
                 Trace("VAR ID : VAL_TYPE\n");
+
+                IDDetail *tmp = my_tables.lookup(*$2);
+
+                if (my_tables.first == isGLOBAL){
+                    javafile << "\t\tfield static int " << *$2 << endl;
+                }
+                else{
+                    javafile << "\t\tsipush " << 0 << endl;
+                    tmp->stackidx = varStackidx;
+                    javafile << "\t\tistore " << varStackidx++ << endl;
+                }
             }
         |   VAR ID '=' EXPR
             {
@@ -132,6 +171,17 @@ VARIABLE_DEC:
                     yyerror(*$2 + ": already exists !");
                 }
                 Trace("VAR ID = EXPR\n");
+
+                IDDetail *tmp = my_tables.lookup(*$2);
+
+                if (my_tables.first == isGLOBAL){
+                    javafile << "\t\tfield static int " << *$2 << endl;
+                    javafile << "\t\tputstatic int " << classID << "." << *$2 << endl;
+                }
+                else{
+                    tmp->stackidx = varStackidx;
+                    javafile << "\t\tistore " << varStackidx++ << endl;
+                }
             }
         |   VAR ID ':' VAL_TYPE '=' EXPR
             {
@@ -143,6 +193,17 @@ VARIABLE_DEC:
                     yyerror(*$2 + ": already exists !");
                 }
                 Trace("VAR ID : VAL_TYPE = EXPR\n");
+
+                IDDetail *tmp = my_tables.lookup(*$2);
+
+                if (my_tables.first == isGLOBAL){
+                    javafile << "\t\tfield static int " << *$2 << endl;
+                    javafile << "\t\tputstatic int " << classID << "." << *$2 << endl;
+                }
+                else{
+                    tmp->stackidx = varStackidx;
+                    javafile << "\t\tistore " << varStackidx++ << endl;
+                }
             }
         |   VAR ID
             {
@@ -151,6 +212,19 @@ VARIABLE_DEC:
                     yyerror(*$2 + ": already exists !");
                 }
                 Trace("VAR ID\n");
+
+                IDDetail *tmp = my_tables.lookup(*$2);
+
+                if (my_tables.first == isGLOBAL){
+                    javafile << "\t\tfield static int " << *$2 << endl;
+                }
+                else{
+                    javafile << "\t\tsipush " << 0 << endl;
+                    tmp->stackidx = varStackidx;
+                    javafile << "\t\tistore " << varStackidx++ << endl;
+                }
+
+                tmp->val->type = INT_type;
             };
 
 /* Array declaration */
@@ -175,21 +249,61 @@ METHOD:
                     yyerror(*$2 + ": already exists !");
                 }
                 my_tables.push();
+                varStackidx = 0;
+                needRETURN = false;
             } '(' FORMAL_ARGS ')' TYPE_OPT 
             {
 
                 IDDetail *tmp = my_tables.lookup(*$2);
 
-                tmp->arg_val = $5;
+                tmp->arg_val = *$5;
 
-                if($7 != VAL_UNDEF_type){
+                if ($7 != VAL_UNDEF_type){
                     tmp->returnType = $7;
                 }
+                if (*$2 == "main"){
+                    javafile << "\tmethod public static void main(java.lang.String[])" << endl;
+                }
+                else{
+
+                    javafile << "\tmethod public static ";
+
+                    if (tmp->returnType == VAL_UNDEF_type){
+                        javafile << "void " << *$2;
+                    }
+                    else{
+                        javafile << getVALTypeStr(tmp->returnType) << " " << *$2;
+                    }
+
+                    if ($5->size() == 0){
+                        javafile << "()" << endl;
+                    }
+                    else{
+                        javafile << "(";
+                        for(int i = $5->size() - 1; i >= 0; i--){
+                            if(i == $5->size() - 1){
+                                javafile << getVALTypeStr((*$5)[i]->type);
+                            }
+                            else{
+                                javafile << "," << getVALTypeStr((*$5)[i]->type);
+                            }
+                        }
+                        javafile << ")" << endl;
+                    }
+                }
+
+                javafile << "\tmax_stack 15\n\tmax_locals 15" << endl;
+                javafile << "\t{" << endl;
+
             } '{' METH_BLOCK_CONTENT '}'
             {
-                Trace("In Function Block\n")
+                Trace("In Function Block\n");
+
                 my_tables.dump();
                 my_tables.pop();
+
+                javafile << "\t\treturn" << endl;
+                javafile << "\t}" << endl;
             };
 
 /* Arguments declaration */
@@ -226,6 +340,10 @@ FORMAL_ARG:
                 if (ID_idx == isExist){
                     yyerror(*$1 + ": already exists !");
                 }
+                
+                IDDetail* IDtmp = my_tables.lookup(*$1);
+                IDtmp->stackidx = varStackidx++;
+                
                 ValueDetail* tmp = new ValueDetail();
                 tmp->arg_name = *$1;
                 cout<< tmp->arg_name<<endl;
@@ -320,6 +438,13 @@ STMT_SIMPLE:
                         *(tmp->val) = *$3;
                         tmp->needInit = false;
                     }
+
+                    if (tmp->stackidx == -1){
+                        javafile << "\t\tputstatic int " << classID << "." << *$1 << endl;
+                    }
+                    else{
+                        javafile << "\t\tistore " << tmp->stackidx << endl;
+                    }
                 }
             }
             /* ID [EXPR] = EXPR */
@@ -351,9 +476,21 @@ STMT_SIMPLE:
                 }
             }
             /* Print EXPR */
-        |   PRINT EXPR 
+        |   PRINT
+            {
+                javafile << "\t\tgetstatic java.io.PrintStream java.lang.System.out" << endl;
+            } EXPR {
+                string buf = getVALTypeStr($3->type);
+                javafile << "\t\tinvokevirtual void java.io.PrintStream.print(" << buf << ")" <<endl;
+            }
             /* Println EXPR */
-        |   PRINTLN EXPR
+        |   PRINTLN
+            {
+                javafile << "\t\tgetstatic java.io.PrintStream java.lang.System.out" << endl;
+            } EXPR {
+                string buf = getVALTypeStr($3->type);
+                javafile << "\t\tinvokevirtual void java.io.PrintStream.println(" << buf << ")" <<endl;
+            }
             /* To get ID */
         |   READ ID
             {
@@ -366,8 +503,16 @@ STMT_SIMPLE:
             }
             /* Return without expression */
         |   RETURN
+            {
+                needRETURN = true;
+                javafile << "\t\treturn" << endl;
+            }
             /* Return EXPR */
         |   RETURN EXPR
+            {
+                needRETURN = true;
+                javafile << "\t\tireturn" << endl;
+            }
             /* EXPR */
         |   EXPR
             /* Call function */
@@ -390,6 +535,8 @@ EXPR:
                 else{
                     yyerror("Value type must be Integer & Float !\n");
                 }
+                
+                genJBOperation('n');
             }
             /* EXPR * EXPR with the same type */
         |   EXPR '*' EXPR
@@ -404,6 +551,8 @@ EXPR:
                 else{
                     yyerror("Value type must be Integer & Float !\n");
                 }
+
+                genJBOperation('*');
             }
             /* EXPR / EXPR with the same type */
         |   EXPR '/' EXPR
@@ -418,6 +567,8 @@ EXPR:
                 else{
                     yyerror("Value type must be Integer & Float !\n");
                 }
+
+                genJBOperation('/');
             }
             /* EXPR + EXPR with the same type */
         |   EXPR '+' EXPR
@@ -432,6 +583,8 @@ EXPR:
                 else{
                     yyerror("Value type must be Integer & Float !\n");
                 }
+
+                genJBOperation('+');
             }
             /* EXPR - EXPR with the same type */
         |   EXPR '-' EXPR
@@ -446,6 +599,8 @@ EXPR:
                 else{
                     yyerror("Value type must be Integer & Float !\n");
                 }
+
+                genJBOperation('-');
             }
             /* return (EXPR < EXPR) with boolean */
         |   EXPR LT EXPR
@@ -460,6 +615,8 @@ EXPR:
                 else{
                     yyerror("Value type must be Integer & Float !\n");
                 }
+
+                genJBLogicOp(opLT);
             }
             /* return (EXPR <= EXPR) with boolean */
         |   EXPR LE EXPR
@@ -474,6 +631,8 @@ EXPR:
                 else{
                     yyerror("Value type must be Integer & Float !\n");
                 }
+
+                genJBLogicOp(opLE);
             }
             /* return (EXPR == EXPR) with boolean */
         |   EXPR EE EXPR
@@ -487,6 +646,8 @@ EXPR:
                 }
                 /* == can compared with any type */
                 $$ = (*$1 == *$3);
+
+                genJBLogicOp(opEE);
             }
             /* return (EXPR >= EXPR) with boolean */
         |   EXPR GE EXPR
@@ -501,6 +662,8 @@ EXPR:
                 else{
                     yyerror("Value type must be Integer & Float !\n");
                 }
+
+                genJBLogicOp(opGE);
             }
             /* return (EXPR > EXPR) with boolean */
         |   EXPR GT EXPR
@@ -515,6 +678,8 @@ EXPR:
                 else{
                     yyerror("Value type must be Integer & Float !\n");
                 }
+
+                genJBLogicOp(opGT);
             }
             /* return (EXPR != EXPR) with boolean */
         |   EXPR NE EXPR
@@ -528,6 +693,8 @@ EXPR:
                 }
                 /* != can compared with any type */
                 $$ = (*$1 != *$3);
+
+                genJBLogicOp(opNE);
             }
             /* return (!EXPR) with boolean */
         |   NOT EXPR
@@ -544,6 +711,8 @@ EXPR:
                     }
                 }
                 $$ = tmp;
+
+                genJBOperation('!');
             }
             /* return (EXPR && EXPR) with boolean */
         |   EXPR AND EXPR
@@ -559,6 +728,8 @@ EXPR:
                 }
                 tmp->boolValue = ($1->boolValue && $3->boolValue);
                 $$ = tmp;
+
+                genJBOperation('&');
             }
             /* return (EXPR && EXPR) with boolean */
         |   EXPR OR EXPR
@@ -574,6 +745,8 @@ EXPR:
                 }
                 tmp->boolValue = ($1->boolValue || $3->boolValue);
                 $$ = tmp;
+
+                genJBOperation('|');
             }
             /* ( EXPR ) */
             /* For print & println */
@@ -597,11 +770,56 @@ EXPR:
                     yyerror("This ID does not exist !\n");
                 }
                 else{
-                    if (tmp->type != CONST_type && tmp->type != VAR_type){
-                        yyerror("Can get this ID value !\n");
+                    // if (tmp->type != CONST_type && tmp->type != VAR_type){
+                    //     yyerror("Can get this ID value !\n");
+                    // }
+
+                    // $$ = tmp->val;
+                    if (tmp->type == FUNC_type){
+                        Trace("Is function type");
+                        
+                        if(tmp->arg_val.size() != 0){
+                            yyerror("argument size error");
+                        }
+
+                        ValueDetail* buf = new ValueDetail();
+                        $$ = buf;
                     }
 
-                    $$ = tmp->val;
+                    if (tmp->val == NULL){
+                        $$ = new ValueDetail();
+                    }
+                    else{
+                        $$ = tmp->val;
+                        int buf;
+
+                        if (tmp->type == CONST_type){
+                            if (tmp->val->type == INT_type){
+                                buf = tmp->val->intValue;
+                                javafile << "\t\tsipush " << buf << endl;
+                            }
+                            else if (tmp->val->type == BOOL_type){
+                                if (tmp->val->boolValue){
+                                    buf = 1;
+                                }
+                                else{
+                                    buf = 0;
+                                }
+                                javafile << "\t\tsipush " << buf << endl;
+                            }
+                            else if (tmp->val->type == STRING_type){
+                                javafile << "\t\tldc" << *(tmp->val->stringValue) << endl;
+                            }
+                        }
+                        else{
+                            if(tmp->stackidx == -1){
+                                javafile << "\t\tgetstatic int " << classID << "." << *$1 << endl;
+                            }
+                            else{
+                                javafile << "\t\tiload " << tmp->stackidx << endl;
+                            }
+                        }
+                    }
                 }
             }
             /* Call function */
@@ -646,6 +864,7 @@ CONST_VAL:
             {
                 Trace("Get Integer\n");
                 $$ = INTconst($1);
+                javafile << "\t\tsipush " << $1 << endl;
             }
         |   FLOAT_VAL
             {
@@ -656,6 +875,12 @@ CONST_VAL:
             {
                 Trace("Get Boolean\n");
                 $$ = BOOLconst($1);
+                if ($1){
+                    javafile << "\t\tsipush " << 1 << endl;
+                }
+                else{
+                    javafile << "\t\tsipush " << 0 << endl;
+                }
             }
         |   CHAR_VAL
             {
@@ -666,6 +891,7 @@ CONST_VAL:
             {
                 Trace("Get String\n");
                 $$ = STRINGconst($1);
+                javafile << "\t\tldc " << *$1 << endl;
             };
 
 /* Call function */
@@ -673,8 +899,7 @@ FUNC_INVOCATION:
             /* Call function can be : ID  or  ID(expr,expr,...,expr) */
             ID '(' COMMA_SEPARATED_EXPR ')'
             {
-                IDDetail* tmp = new IDDetail();
-                tmp = my_tables.lookup(*$1);
+                IDDetail* tmp = my_tables.lookup(*$1);
                 
                 if (tmp == NULL){
                     yyerror("This ID does not exist !\n");
@@ -684,11 +909,30 @@ FUNC_INVOCATION:
                         yyerror("This ID is not a function !\n");
                     }
 
-                    if ($3->size() != tmp->arg_val->size()){
+                    if ($3->size() != tmp->arg_val.size()){
                         yyerror("Wrong argument size !\n");
                     }
 
+                    for (int i = 0; i < $3->size(); i++){
+                        if((*$3)[i]->type != tmp->arg_val[i]->type){
+                            yyerror("exist argument's type error");
+                        }
+                    }
+
                     $$ = tmp->returnType;
+
+                    javafile << "\t\tinvokestatic int " << classID << "." << *$1 << "(";
+
+                    for (int i = $3->size() - 1; i >= 0; i--){
+                        if(i == $3->size() - 1){
+                            javafile << getVALTypeStr((*$3)[i]->type);
+                        }
+                        else{
+                            javafile << "," << getVALTypeStr((*$3)[i]->type);
+                        }
+                    }
+
+                    javafile << ")" << endl;
                 }
             };
 
@@ -735,7 +979,13 @@ STMT_BLOCK_CONTENTS:
 /* Conditional statements declaration */
 STMT_CONDITIONAL:
             IF_COND
-        |   IF_COND ELSE_COND;
+            {
+                IFEnd();
+            }
+        |   IF_COND
+            {
+                ELSEStart();
+            } ELSE_COND;
 
 /* Condition_if declaration */
 IF_COND:
@@ -746,17 +996,42 @@ IF_COND:
                 if ($3->type != BOOL_type){
                     yyerror("Conditional expression must be Boolean !\n");
                 }
-            } STMT_SCOPE;
+
+                if (!elifFLAG){
+                    IFStart();
+                }
+                else{
+                    ELIFStart();
+                }
+
+                elifFLAG = false;
+            } CONDITION_LOOP_SCOPE
+            {
+                IFScope();
+            };
 /* Condition_else declaration */
 ELSE_COND:
-            ELSE STMT_SCOPE;
+            ELSE
+            {
+                elifFLAG = true;
+            } IF_COND
+        |   ELSE CONDITION_LOOP_SCOPE
+            {
+                ELSEEnd();
+            };
 
 /* Statement's scope contents */
-STMT_SCOPE:
+//STMT_SCOPE:
             /* Just a simple_statement */
-            STMT_SIMPLE
+//            STMT_SIMPLE
             /* a block with multi statements */
+//        |   STMT_BLOCK;
+
+CONDITION_LOOP_SCOPE:   
+            STMT_SIMPLE
         |   STMT_BLOCK;
+
+
 
 /* Loop_statements declaration */
 STMT_LOOP:
@@ -766,13 +1041,22 @@ STMT_LOOP:
 /* Loop_while delcaration */
 WHILE_LOOP:
             /* while (EXPR) */
-            WHILE '(' EXPR ')' 
+            WHILE
+            {
+                WHILEStart();
+            } '(' EXPR ')' 
             {
                 Trace("WHILE ( EXPR )\n");
-                if ($3->type != BOOL_type){
+                if ($4->type != BOOL_type){
                     yyerror("Conditional expression must be Boolean !\n");
                 }
-            } STMT_SCOPE;
+
+                WHILEBeforeScope();
+            } CONDITION_LOOP_SCOPE
+            {
+                WHILEScope();
+                WHILEEnd();
+            };
 
 /* Loop_for declaration */
 FOR_LOOP:
@@ -786,7 +1070,7 @@ FOR_LOOP:
                     yyerror("This ID must be variable type !\n");
                 }
             }
-            STMT_SCOPE;
+            CONDITION_LOOP_SCOPE;
 
 /* Method's return rule declaration */
 METH_RETURN:
@@ -822,9 +1106,26 @@ int main(int argc, char **argv)
         cout << "Command error" << endl;
     }
 
+    if (argc > 1){
+        fname = string(argv[1]);
+        //fname = "example";
+        javafile.open(fname + ".jasm");
+        cout << "file build!!" << endl;
+
+    }
+
+    if (!javafile){
+        cout << "javafile open failed" << endl;
+        exit(1);
+    }
+
     /* perform parsing */
     if (yyparse() == 1)                 /* parsing */
+    {
         yyerror("Parsing error !");     /* syntax error */
-
-    cout << endl << endl << "===========PARSING COMPLETE===========" << endl << endl << endl;
+    }
+    else
+    {
+        cout << endl << endl << "===========PARSING COMPLETE===========" << endl << endl << endl;
+    }
 }
